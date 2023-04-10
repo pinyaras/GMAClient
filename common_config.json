@@ -1,0 +1,12 @@
+{
+  "algorithm_client_port": 8088,
+  "algorithm_client_identity": "menglei-gym-client",
+  "enable_rl_agent": true,
+
+  "rl_agent_config":{
+    "agent": "PPO",
+    "policy": "MlpPolicy",
+    "train": true,
+    "reward_type" : "wifi_qos_user_num"
+  }
+}
