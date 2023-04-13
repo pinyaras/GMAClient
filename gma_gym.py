@@ -8,7 +8,7 @@ from stable_baselines3.common.running_mean_std import RunningMeanStd
 
 import pathlib
 import json
-from .gmasim_open_api import gmasim_client
+from gmasim_open_api import gmasim_client
 import math
 import sys
 
@@ -94,6 +94,7 @@ class GmaSimEnv(gym.Env):
         df_qos_rate = df_list[4]
         df_owd = df_list[5]
         df_split_ratio = df_list[6]
+        df_ap_id = df_list[7]
 
         print("Reset Function at time:" + str(df_load["end_ts"][0]))
         #if self.enable_rl_agent and not ok_flag:
@@ -282,7 +283,8 @@ class GmaSimEnv(gym.Env):
         df_qos_rate = df_list[4]
         df_owd = df_list[5]
         df_split_ratio = df_list[6]
-
+        df_ap_id = df_list[7]
+        print (df_ap_id)
         print("step function at time:" + str(df_load["end_ts"][0]))
         dict_wifi_split_ratio = self.df_split_ratio_to_dict(df_split_ratio, "Wi-Fi")
 
