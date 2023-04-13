@@ -8,9 +8,14 @@ from stable_baselines3.common.running_mean_std import RunningMeanStd
 
 import pathlib
 import json
-from gmasim_open_api import gmasim_client
+
+try:
+    # Try to import from the same directory
+    gmasim_open_api import gmasim_client
+except ImportWarning:
+    from .gmasim_open_api import gmasim_client
+
 import math
-import sys
 
 np.set_printoptions(precision=3)
 
