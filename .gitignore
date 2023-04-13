@@ -1,1 +1,5 @@
 gmasim_open_api.py
+/wandb
+/runs
+/models
+/__pycache__
