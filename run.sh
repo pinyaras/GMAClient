@@ -2,6 +2,7 @@
 
 python3 cleanrl_ddpg.py --use_case nqos_split 
 
+#Test submodule
 # python3 main_rl.py --use_case nqos_split --num_users=4 --lte_rb=50
 # python3 main_rl.py --use_case nqos_split --num_users=8 --lte_rb=50
 # python3 main_rl.py --use_case nqos_split --num_users=16 --lte_rb=50
