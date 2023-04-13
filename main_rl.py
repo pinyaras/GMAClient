@@ -4,6 +4,7 @@ import numpy as np
 import pathlib
 import json
 import sys
+import time
 #Import gmagym environment
 from gma_gym import GmaSimEnv
 
@@ -72,10 +73,61 @@ def gma_policy(env, config_json):
         # take random action, but you can also do something more intelligent
         # action = my_intelligent_agent_fn(obs) 
 
-        #action = env.action_space.sample()
         action = np.array([])
+
         # apply the action
         obs, reward, done, info = env.step(action)
+
+def single_link_policy(env, config_json):
+
+    num_steps = 0
+
+    #configure the num_steps based on the JSON file
+    if (config_json['gmasim_config']['GMA']['measurement_interval_ms'] + config_json['gmasim_config']['GMA']['measurement_guard_interval_ms']
+        == config_json['gmasim_config']['WIFI']['measurement_interval_ms'] + config_json['gmasim_config']['WIFI']['measurement_guard_interval_ms']
+        == config_json['gmasim_config']['LTE']['measurement_interval_ms'] + config_json['gmasim_config']['LTE']['measurement_guard_interval_ms']):
+        num_steps = int(config_json['gmasim_config']['simulation_time_s'] * 1000/config_json['gmasim_config']['GMA']['measurement_interval_ms'])
+    else:
+        print(config_json['gmasim_config']['GMA']['measurement_interval_ms'])
+        print(config_json['gmasim_config']['GMA']['measurement_guard_interval_ms'])
+        print(config_json['gmasim_config']['WIFI']['measurement_interval_ms'])
+        print(config_json['gmasim_config']['WIFI']['measurement_guard_interval_ms'])
+        print(config_json['gmasim_config']['LTE']['measurement_interval_ms'])
+        print(config_json['gmasim_config']['LTE']['measurement_guard_interval_ms'])
+        sys.exit('[Error!] The value of GMA, WIFI, and LTE measurement_interval_ms + measurement_guard_interval_ms should be the same!')
+
+
+    done = True
+    for step in range(num_steps):
+        # If the epsiode is up, then start another one
+        if done:
+            obs = env.reset()
+
+        # take random action, but you can also do something more intelligent
+        # action = my_intelligent_agent_fn(obs) 
+
+        #action = env.action_space.sample()
+
+        link_type = config_json['rl_agent_config']['link_type']
+        user_number = config_json['gmasim_config']['num_users']
+        action_list = []
+
+        if link_type == "wifi":
+            wifi_ratio = 32
+            lte_ratio = 0
+
+        elif link_type == "lte":
+            wifi_ratio = 0
+            lte_ratio = 32
+
+        for user_id in range(user_number):
+
+            action_list.append({"cid":"Wi-Fi","user":int(user_id),"value":int(wifi_ratio)})#config wifi ratio for user: user_id
+            action_list.append({"cid":"LTE","user":int(user_id),"value":int(lte_ratio)})#config lte ratio for user: user_id
+
+        # apply the action
+        obs, reward, done, info = env.step(action_list)
+
 
 def evaluate(model, env, n_episodes=NUM_OF_EVALUATE_EPISODES):
     rewards = []
@@ -114,10 +166,17 @@ def main():
     config_json = {**common_config_json, **gmasim_config_json}
     config_json['gmasim_config']['use_case'] = args.use_case
 
+    print("[" + str(config_json['gmasim_config']['num_users']) + "] Number of users selected.")
+
+    if args.num_users != -1:
+        config_json['gmasim_config']['num_users'] = args.num_users
+    if args.lte_rb !=-1:
+        config_json['gmasim_config']['LTE']['resource_block_num'] = args.lte_rb
+
 
     rl_alg = config_json['rl_agent_config']['agent'] 
 
-    if not config_json['enable_rl_agent']:
+    if not config_json['enable_rl_agent'] :
         rl_alg = 'GMA'
         config_json['gmasim_config']['GMA']['respond_action_after_measurement'] = False
     else:
@@ -132,7 +191,8 @@ def main():
     }
 
     run = wandb.init(
-        name=rl_alg,
+        # name=rl_alg + "_" + str(config_json['gmasim_config']['num_users']) + "_LTE_" +  str(config_json['gmasim_config']['LTE']['resource_block_num']),
+        name=rl_alg + "_" + str(config_json['gmasim_config']['num_users']) + "_" +  str(config_json['gmasim_config']['LTE']['resource_block_num']),
         project="gmasim-gym",
         config=config,
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
@@ -145,7 +205,8 @@ def main():
         'SAC': SAC,
         'TD3': TD3,
         'A2C': A2C,
-        'GMA': gma_policy
+        'GMA': gma_policy,
+        'SingleLink': single_link_policy
     }
 
     model_map = {
@@ -157,14 +218,19 @@ def main():
     agent_class = alg_map.get(rl_alg, None)
     if agent_class is None:
         raise ValueError(f"Invalid RL algorithm name: {rl_alg}")
-    #worker_id = list(alg_map.keys()).index(rl_alg) + 1
-    worker_id = 0
+    #client_id = list(alg_map.keys()).index(rl_alg) + 1
+    client_id = args.client_id
     # Create the environment
-    env = GmaSimEnv(worker_id, config_json, wandb) # pass id, and configure file
+    env = GmaSimEnv(client_id, config_json, wandb) # pass id, and configure file
 
     if config_json['enable_rl_agent']:
 
         train_flag = config_json['rl_agent_config']['train']
+        #link_type = config_json['rl_agent_config']['link_type']
+
+        if rl_alg == "SingleLink":
+            single_link_policy(env, config_json)
+            return
         # Load the model if eval is True
         if not train_flag:
             # Testing/Evaluation
@@ -185,8 +251,15 @@ def arg_parser():
     parser = argparse.ArgumentParser(description='GMAsim Client')
     parser.add_argument('--use_case', type=str, required=True,
                         help='Select a use case to start GMAsim (nqos_split, qos_steer, network_slicing).')
+    parser.add_argument('--client_id', type=int, required=False, default=0,
+                        help='Select client id to start simulation).')
+    parser.add_argument('--num_users', type=int, required=False, default=-1,
+                        help='Select number of users')
+    parser.add_argument('--lte_rb', type=int, required=False, default=-1,
+                        help='Select number of LTE Resource Blocks')
     args = parser.parse_args()
     return args
 
 if __name__ == '__main__':
     main()
+    time.sleep(10)
