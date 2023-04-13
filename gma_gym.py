@@ -11,8 +11,8 @@ import json
 
 try:
     # Try to import from the same directory
-    gmasim_open_api import gmasim_client
-except ImportWarning:
+    from gmasim_open_api import gmasim_client
+except ImportError:
     from .gmasim_open_api import gmasim_client
 
 import math
