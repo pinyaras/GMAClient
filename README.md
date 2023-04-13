@@ -14,7 +14,7 @@ pip3 install stable-baselines3
 pip3 install wandb
 pip3 install tensorboard
 ```
-- Setup port forwarding from the local port 8088 to the mlwins-v01 external server port 8088. For putty port forwarding method, see the ***Setup InfluxDB Database*** section. If you launch the algorithm client at the mlwins-v01 machine, you do not need port forwarding.
+- If you launch the algorithm client at the mlwins-v01 machine, you do not need port forwarding. Otherwise, setup port forwarding from the local port 8088 to the mlwins-v01 external server port 8088. 
 ```
 ssh -L 8088:mlwins-v01.research.intel-research.net:8088 ssh.intel-research.net
 ```
