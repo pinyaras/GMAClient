@@ -25,7 +25,8 @@
       },
       "app_and_measurement_start_time_ms": 1000,
       "transport_protocol": "udp",
-      "udp_rate_per_user_mbps": 2,
+      "min_udp_rate_per_user_mbps": 2,
+      "max_udp_rate_per_user_mbps": 3,
       "qos_requirement": {
         "test_duration_ms": 500,
         "delay_bound_ms": 100,
@@ -38,6 +39,7 @@
           "respond_action_after_measurement": true
       },
       "WIFI": {
+        "ap_share_same_band": false,
         "measurement_interval_ms": 1000,
         "measurement_guard_interval_ms": 0
       },

@@ -66,7 +66,8 @@ ssh -L 8088:mlwins-v01.research.intel-research.net:8088 ssh.intel-research.net
       },
       "app_and_measurement_start_time_ms": 1000, //when the application starts traffic and send measurement to RL agent
       "transport_protocol": "tcp", //"tcp" or "udp"
-      "udp_rate_per_user_mbps": 10, // if "transport_protocol" is "udp", this para controls the sending rate.
+      "min_udp_rate_per_user_mbps": 2, // if "transport_protocol" is "udp", this para controls the min sending rate.
+      "max_udp_rate_per_user_mbps": 3, // if "transport_protocol" is "udp", this para controls the max sending rate.
       "qos_requirement": {//only for qos_steer use case
         "test_duration_ms": 500,//duration for qos testing
         "delay_bound_ms": 100,//max delay for qos flow
@@ -79,6 +80,7 @@ ssh -L 8088:mlwins-v01.research.intel-research.net:8088 ssh.intel-research.net
           "respond_action_after_measurement": true //do not change
         },
         "WIFI": {
+          "ap_share_same_band": false, //set to true, ap will share the same frequency band.
           "measurement_interval_ms": 100,
           "measurement_guard_interval_ms": 0
         },

@@ -2,12 +2,12 @@
   "gmasim_config":{
       "type": "gmasim-start",
       "use_case": "nqos_split",
-      "simulation_time_s": 100,
+      "simulation_time_s": 20,
       "random_run": 2,
       "downlink": true,
       "max_wait_time_for_action_ms": -1,
       "enb_locations":{
-        "x":40,
+        "x":0,
         "y":0,
         "z":3
       },
@@ -16,7 +16,7 @@
         {"x":50,"y":0,"z":3}
       ],
       "num_users" : 4,
-      "user_left_right_speed_m/s": 1,
+      "user_left_right_speed_m/s": 10,
       "user_location_range":{
         "min_x":0,
         "max_x":80,
@@ -26,13 +26,15 @@
       },
       "app_and_measurement_start_time_ms": 1000,
       "transport_protocol": "tcp",
-      "udp_rate_per_user_mbps": 10,
+      "min_udp_rate_per_user_mbps": 2,
+      "max_udp_rate_per_user_mbps": 5,
       "GMA": {
           "measurement_interval_ms": 100,
           "measurement_guard_interval_ms": 0,
           "respond_action_after_measurement": true
         },
         "WIFI": {
+          "ap_share_same_band": false,
           "measurement_interval_ms": 100,
           "measurement_guard_interval_ms": 0
         },
