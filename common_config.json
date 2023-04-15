@@ -4,7 +4,7 @@
   "enable_rl_agent": false,
 
   "rl_agent_config":{
-    "agent": "DDPG",
+    "agent": "GMA",
     "link_type": "lte",
     "policy": "MlpPolicy",
     "train": true,
