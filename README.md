@@ -3,7 +3,7 @@ The python-based algorithm client for DD-GMAsim: a ns3-based Data-Driven AI/ML-e
 This release includes the ML algorithms from the [stable-baselines3](https://stable-baselines3.readthedocs.io/en/master/), e.g., PPO, DDPG, SAC, TD3, and A2C.
 
 ## Prerequisite:
-- 📧 Contact us to get the `gma_open_api` library.
+- Download [gma_open_api](https://github.com/IntelLabs/gma/blob/master/GMAsim/gmasim_open_api.py) library. If the GMA algorithm client returns errors, try to check if the [gma_open_api](https://github.com/IntelLabs/gma/blob/master/GMAsim/gmasim_open_api.py) has any updates.
 
 ## Start GMA Algorithm Client:
 - Install Required Libraries:
@@ -14,7 +14,7 @@ pip3 install stable-baselines3
 pip3 install wandb
 pip3 install tensorboard
 ```
-- If you launch the algorithm client at the mlwins-v01 machine, you do not need port forwarding. Otherwise, setup port forwarding from the local port 8088 to the mlwins-v01 external server port 8088. 
+- If you launch the algorithm client at the mlwins-v01 machine, you do not need port forwarding. Otherwise, setup the port forwarding from the local port 8088 to the mlwins-v01 external server port 8088 via the SSH gateway. 
 ```
 ssh -L 8088:mlwins-v01.research.intel-research.net:8088 ssh.intel-research.net
 ```
