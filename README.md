@@ -1,9 +1,9 @@
-# gma-gym-client
+# gmasim-gym-client
 The python-based algorithm client for DD-GMAsim: a ns3-based Data-Driven AI/ML-enabled Multi-Access Network Simulator.
 This release includes the ML algorithms from the [stable-baselines3](https://stable-baselines3.readthedocs.io/en/master/), e.g., PPO, DDPG, SAC, TD3, and A2C.
 
 ## Prerequisite:
-- Download [gma_open_api](https://github.com/IntelLabs/gma/blob/master/GMAsim/gmasim_open_api.py) library. If the GMA algorithm client returns errors, try to check if the [gma_open_api](https://github.com/IntelLabs/gma/blob/master/GMAsim/gmasim_open_api.py) has any updates.
+- Download [gmasim_open_api](https://github.com/IntelLabs/gma/blob/master/GMAsim/gmasim_open_api.py) library. If the GMA algorithm client returns errors, try to check if the [gmasim_open_api](https://github.com/IntelLabs/gma/blob/master/GMAsim/gmasim_open_api.py) has any updates.
 
 ## Start GMA Algorithm Client:
 - Install Required Libraries:
