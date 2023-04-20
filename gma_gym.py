@@ -289,15 +289,28 @@ class GmaSimEnv(gym.Env):
         df_owd = df_list[5]
         df_split_ratio = df_list[6]
         df_ap_id = df_list[7]
-        print (df_ap_id)
+        # print (df_ap_id)
         print("step function at time:" + str(df_load["end_ts"][0]))
         dict_wifi_split_ratio = self.df_split_ratio_to_dict(df_split_ratio, "Wi-Fi")
+
 
         if not self.wandb_log_info:
             self.wandb_log_info = dict_wifi_split_ratio
         else:
             self.wandb_log_info.update(dict_wifi_split_ratio)
 
+
+        wifi_util_0, wifi_util_1 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
+
+        self.wandb_log_info.update({"AP0_util_rate": wifi_util_0[0] ,"AP1_util_rate": wifi_util_1[0],
+                                    "AP0_util_load": wifi_util_0[1] ,"AP1_util_load": wifi_util_1[1]
+                                     })
+
+        # wifi_util_0, wifi_util_1, lte_util_0 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
+
+        # self.wandb_log_info.update({"AP0_util_rate": wifi_util_0[0] ,"AP1_util_rate": wifi_util_1[0], "Cell0_util_rate": lte_util_0[0],
+        #                             "AP0_util_load": wifi_util_0[1] ,"AP1_util_load": wifi_util_1[1], "Cell0_util_load": lte_util_0[1]
+        #                              })
 
         #check if the data frame is empty
         if len(df_phy_wifi_max_rate)> 0:
@@ -343,6 +356,9 @@ class GmaSimEnv(gym.Env):
             # observation = np.concatenate([observation, emptyFeatureArray])
             phy_df_rate = emptyFeatureArray
 
+ 
+
+
         # observation = np.ones((3, 4))
         if self.input == "flat":
             observation = np.concatenate([phy_lte_max_rate, phy_wifi_max_rate, phy_df_rate])
@@ -364,7 +380,7 @@ class GmaSimEnv(gym.Env):
         #Get reward
         rewards, avg_delay, avg_datarate = self.get_reward(df_owd, df_load, df_rate, df_qos_rate)
         
-        return normalized_obs, rewards, avg_delay
+        return normalized_obs, rewards, avg_delay, df_owd
 
     def netowrk_util(self, throughput, delay, alpha=0.5):
         """
@@ -426,6 +442,64 @@ class GmaSimEnv(gym.Env):
         reward = abs_delay_diffs.mean()
         return reward
 
+    def user_list(self, x):
+        return list(x.unique())
+
+    def sta_count(self,df ):
+        wifi_df = df.loc[df['cid'] == 'Wi-Fi']
+        wifi_df = wifi_df.groupby('value')['user'].agg(self.user_list).reset_index()
+        wifi_df.columns = ['name', 'user_list']
+        wifi_list = wifi_df["user_list"].values
+
+        # lte_df = df.loc[df['cid'] == 'LTE']
+        # print("LTE_DF",lte_df)
+        # lte_df = lte_df.groupby('value')['user'].agg(self.user_list).reset_index()
+        # print(lte_df)
+        # lte_df.columns = ['name', 'user_list']
+        # lte_list = lte_df["user_list"].values
+
+        # print(lte_list)
+
+        return wifi_list
+
+    def process_util(self, df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id):
+
+        wifi_list = self.sta_count(df_ap_id)
+
+        # wifi_list, lte_list = self.sta_count(df_ap_id)
+        # print(wifi_list)
+        # print(lte_list)
+
+        df_rate['value'] = df_rate['value'].replace(0, 0.1)
+        df_load['value'] = df_load['value'].replace(0, 0.1)
+
+        est_util_ap0 = self.estimate_util(wifi_list[0], df_phy_wifi_max_rate, df_rate, df_load)
+        est_util_ap1 = self.estimate_util(wifi_list[1], df_phy_wifi_max_rate, df_rate, df_load)
+        # est_util_cell0 = self.estimate_util(lte_list[0], df_phy_lte_max_rate, df_rate, df_load)
+
+        return est_util_ap0, est_util_ap1
+        # return est_util_ap0, est_util_ap1, est_util_cell0
+
+    def estimate_util(self, user_list, df_max_rate, df_rate, df_load  ):
+        
+        #compute estimate utilization with traffic arrival and throughputs
+
+        # print(df_max_rate)
+        # print(df_load)
+        # print(df_rate)
+
+        max_cap_sum = df_max_rate.loc[df_max_rate['user'].isin(user_list), 'value'].sum() #sum(max-rate)
+        num_user_per_sta = len(user_list)   #number of users per AP
+        max_cap = max_cap_sum / num_user_per_sta 
+
+        delivery_rate = df_rate.loc[df_rate['user'].isin(user_list), 'value'].sum()
+        traffic_arrival = df_load.loc[df_load['user'].isin(user_list), 'value'].sum()
+
+        est_util_load = traffic_arrival / max_cap
+        est_util_rate = delivery_rate / max_cap
+
+        return est_util_load, est_util_rate
+
 
     def get_reward(self, df_owd, df_load, df_rate, df_qos_rate):
 
@@ -453,6 +527,7 @@ class GmaSimEnv(gym.Env):
         df_dict = self.df_to_dict(df_load, 'tx_rate')
         df_dict["sum_tx_rate"] = df_load[:]["value"].sum()
 
+        # _ = self.calculate_delay_diff(df_owd)
 
         avg_delay = df_owd["value"].mean()
         max_delay = df_owd["value"].max()
@@ -529,7 +604,7 @@ class GmaSimEnv(gym.Env):
         self.send_action(actions)
 
         #2.) Get measurements from gamsim and normalize obs and reward
-        normalized_obs, reward, avg_delay = self.get_obs_reward()
+        normalized_obs, reward, avg_delay, df_owd = self.get_obs_reward()
 
         # send info to wandb
         self.wandb.log(self.wandb_log_info)
@@ -547,4 +622,4 @@ class GmaSimEnv(gym.Env):
                 self.first_episode = False
 
         #4.) return observation, reward, done, info
-        return normalized_obs.astype(np.float32), reward, done, {}
+        return normalized_obs.astype(np.float32), reward, done, {"df_owd": df_owd}

@@ -16,7 +16,7 @@
         {"x":50,"y":0,"z":3}
       ],
       "num_users" : 8,
-      "user_left_right_speed_m/s": 10,
+      "user_left_right_speed_m/s": 3,
       "user_location_range":{
         "min_x":0,
         "max_x":80,
@@ -39,7 +39,7 @@
           "measurement_guard_interval_ms": 0
         },
         "LTE": {
-          "resource_block_num": 25,
+          "resource_block_num": 50,
           "measurement_interval_ms": 100,
           "measurement_guard_interval_ms": 0
         }
