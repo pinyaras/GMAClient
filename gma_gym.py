@@ -2,7 +2,7 @@ import gym
 import numpy as np
 from gym import spaces
 from gym.spaces import Box
-
+import pandas as pd
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.running_mean_std import RunningMeanStd
 
@@ -303,7 +303,8 @@ class GmaSimEnv(gym.Env):
         wifi_util_0, wifi_util_1 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
 
         self.wandb_log_info.update({"AP0_util_rate": wifi_util_0[0] ,"AP1_util_rate": wifi_util_1[0],
-                                    "AP0_util_load": wifi_util_0[1] ,"AP1_util_load": wifi_util_1[1]
+                                    "AP0_util_load": wifi_util_0[1] ,"AP1_util_load": wifi_util_1[1],
+                                    "AP0_num_user": wifi_util_0[2] ,"AP1_num_user": wifi_util_1[2]
                                      })
 
         # wifi_util_0, wifi_util_1, lte_util_0 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
@@ -447,28 +448,48 @@ class GmaSimEnv(gym.Env):
 
     def sta_count(self,df ):
         wifi_df = df.loc[df['cid'] == 'Wi-Fi']
-        wifi_df = wifi_df.groupby('value')['user'].agg(self.user_list).reset_index()
-        wifi_df.columns = ['name', 'user_list']
-        wifi_list = wifi_df["user_list"].values
+        wifi_df['value'] = wifi_df['value'].astype(int)
 
-        # lte_df = df.loc[df['cid'] == 'LTE']
+        wifi_df = wifi_df.groupby('value')['user'].agg(self.user_list).reset_index()
+        wifi_df.columns = ['id', 'user_list']
+
+        ap_list = list(range(2))
+
+        unique_values = set(wifi_df['id'])
+
+        if set(unique_values) == set(ap_list):
+            wifi_list = wifi_df["user_list"].tolist()
+        else:
+            wifi_df_copy = wifi_df.copy()
+
+            for ap_value in ap_list:
+                if ap_value not in unique_values:
+                    new_row = pd.DataFrame({'id': [ap_value], 'user_list': [[]]})
+                    wifi_df_copy = pd.concat([wifi_df_copy, new_row], ignore_index=True)
+            wifi_list = wifi_df_copy["user_list"].tolist()
+
+
+        # wifi_list = wifi_df["user_list"].tolist()
+
+
+        lte_df = df.loc[df['cid'] == 'LTE']
         # print("LTE_DF",lte_df)
-        # lte_df = lte_df.groupby('value')['user'].agg(self.user_list).reset_index()
-        # print(lte_df)
-        # lte_df.columns = ['name', 'user_list']
-        # lte_list = lte_df["user_list"].values
+        lte_df = lte_df.groupby('value')['user'].agg(self.user_list).reset_index()
+        print(lte_df)
+        lte_df.columns = ['id', 'user_list']
+        lte_list = lte_df["user_list"].values
 
         # print(lte_list)
 
-        return wifi_list
+        return wifi_list,lte_list
 
     def process_util(self, df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id):
 
-        wifi_list = self.sta_count(df_ap_id)
+        # wifi_list = self.sta_count(df_ap_id)
 
-        # wifi_list, lte_list = self.sta_count(df_ap_id)
+        wifi_list, lte_list = self.sta_count(df_ap_id)
         # print(wifi_list)
-        # print(lte_list)
+        # print(df_ap_id)
 
         df_rate['value'] = df_rate['value'].replace(0, 0.1)
         df_load['value'] = df_load['value'].replace(0, 0.1)
@@ -483,22 +504,32 @@ class GmaSimEnv(gym.Env):
     def estimate_util(self, user_list, df_max_rate, df_rate, df_load  ):
         
         #compute estimate utilization with traffic arrival and throughputs
+        #Assume the delivery_rate for both link
+        #TODO: calculate the delivery_rate respect to split-ratio
 
         # print(df_max_rate)
         # print(df_load)
         # print(df_rate)
-
+        # print(user_list)
         max_cap_sum = df_max_rate.loc[df_max_rate['user'].isin(user_list), 'value'].sum() #sum(max-rate)
-        num_user_per_sta = len(user_list)   #number of users per AP
+        
+        if len(user_list) > 0:
+            num_user_per_sta = len(user_list)   #number of users per AP
+        else:
+            num_user_per_sta = 0 # No users connected to this devices
+
         max_cap = max_cap_sum / num_user_per_sta 
 
         delivery_rate = df_rate.loc[df_rate['user'].isin(user_list), 'value'].sum()
         traffic_arrival = df_load.loc[df_load['user'].isin(user_list), 'value'].sum()
 
+        print(delivery_rate)
+        print(traffic_arrival)
+
         est_util_load = traffic_arrival / max_cap
         est_util_rate = delivery_rate / max_cap
 
-        return est_util_load, est_util_rate
+        return est_util_load, est_util_rate, num_user_per_sta
 
 
     def get_reward(self, df_owd, df_load, df_rate, df_qos_rate):

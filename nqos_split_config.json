@@ -16,7 +16,7 @@
         {"x":50,"y":0,"z":3}
       ],
       "num_users" : 8,
-      "user_left_right_speed_m/s": 3,
+      "user_left_right_speed_m/s": 2,
       "user_location_range":{
         "min_x":0,
         "max_x":80,
