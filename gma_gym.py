@@ -101,6 +101,8 @@ class GmaSimEnv(gym.Env):
         df_split_ratio = df_list[6]
         df_ap_id = df_list[7]
 
+        df_rate = df_rate[df_rate['cid'] == 'All'].reset_index(drop=True) #keep the flow rate.
+
         print("Reset Function at time:" + str(df_load["end_ts"][0]))
         #if self.enable_rl_agent and not ok_flag:
         #    #sys.exit('[Error!] The first observation should always be okey!!!!')
@@ -289,6 +291,11 @@ class GmaSimEnv(gym.Env):
         df_owd = df_list[5]
         df_split_ratio = df_list[6]
         df_ap_id = df_list[7]
+        
+        df_rate = df_rate[df_rate['cid'] == 'All'].reset_index(drop=True) #keep the flow rate.
+        #df_wifi_rate = df_rate[df_rate['cid'] == 'Wi-Fi'].reset_index(drop=True) #keep the Wi-Fi rate.
+        #df_lte_rate = df_rate[df_rate['cid'] == 'LTE'].reset_index(drop=True) #keep the LTE rate.
+
         # print (df_ap_id)
         print("step function at time:" + str(df_load["end_ts"][0]))
         dict_wifi_split_ratio = self.df_split_ratio_to_dict(df_split_ratio, "Wi-Fi")
