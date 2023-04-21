@@ -34,6 +34,8 @@
         "loss_target": 0.001
       },
       "GMA": {
+          "downlink_mode": "auto",
+          "uplink_mode": "auto",
           "measurement_interval_ms": 1000,
           "measurement_guard_interval_ms": 0,
           "respond_action_after_measurement": true
