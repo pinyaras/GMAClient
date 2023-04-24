@@ -19,15 +19,15 @@
       "user_left_right_speed_m/s": 2,
       "user_location_range":{
         "min_x":0,
-        "max_x":80,
+        "max_x":70,
         "min_y":0,
         "max_y":10,
         "z":1.5
       },
       "app_and_measurement_start_time_ms": 1000,
-      "transport_protocol": "tcp",
+      "transport_protocol": "udp",
       "min_udp_rate_per_user_mbps": 2,
-      "max_udp_rate_per_user_mbps": 5,
+      "max_udp_rate_per_user_mbps": 3,
       "GMA": {
           "measurement_interval_ms": 100,
           "measurement_guard_interval_ms": 0,
