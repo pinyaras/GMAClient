@@ -75,6 +75,8 @@ ssh -L 8088:mlwins-v01.research.intel-research.net:8088 ssh.intel-research.net
         "loss_target": 0.001 //loss target for qos flow
       },
       "GMA": {
+          "downlink_mode": "auto", //"auto", "split", or "steer". "auto" will config UDP and TCP ACK as steer and TCP data as split.
+          "uplink_mode": "auto", //"auto", "split", or "steer". "auto" will config UDP and TCP ACK as steer and TCP data as split.
           "measurement_interval_ms": 100, //duration of a measurement interval.
           "measurement_guard_interval_ms": 0, //gap between 2 measurement interval
           "respond_action_after_measurement": true //do not change
