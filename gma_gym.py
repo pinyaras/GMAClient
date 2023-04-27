@@ -144,9 +144,6 @@ class GmaSimEnv(gym.Env):
             # observation = np.concatenate([observation, emptyFeatureArray])
             phy_df_rate = emptyFeatureArray
 
-
-        
-
         # observation = np.ones((3, 4))
         if self.input == "flat":
             observation = np.concatenate([phy_lte_max_rate, phy_wifi_max_rate, phy_df_rate])

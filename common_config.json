@@ -1,10 +1,10 @@
 {
   "algorithm_client_port": 8088,
   "algorithm_client_identity": "test-gym-client",
-  "enable_rl_agent": false,
+  "enable_rl_agent": true,
 
   "rl_agent_config":{
-    "agent": "GMA",
+    "agent": "custom",
     "link_type": "lte",
     "policy": "MlpPolicy",
     "train": true,

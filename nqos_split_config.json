@@ -26,8 +26,8 @@
       },
       "app_and_measurement_start_time_ms": 1000,
       "transport_protocol": "udp",
-      "min_udp_rate_per_user_mbps": 3,
-      "max_udp_rate_per_user_mbps": 3.5,
+      "min_udp_rate_per_user_mbps": 8,
+      "max_udp_rate_per_user_mbps": 8,
       "GMA": {
           "downlink_mode": "split",
           "uplink_mode": "auto",
