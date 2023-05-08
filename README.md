@@ -14,10 +14,10 @@ pip3 install stable-baselines3
 pip3 install wandb
 pip3 install tensorboard
 ```
-- If you launch the algorithm client at the mlwins-v01 machine, you do not need port forwarding. Otherwise, setup the port forwarding from the local port 8088 to the mlwins-v01 external server port 8088 via the SSH gateway. 
-```
-ssh -L 8088:mlwins-v01.research.intel-research.net:8088 ssh.intel-research.net
-```
+- ⚠️ Setup the port forwarding from the local port 8088 to the mlwins-v01 external server port 8088 via the SSH gateway (If you launch the algorithm client at the mlwins-v01 machine, you do not need port forwarding): 
+`ssh -L 8088:mlwins-v01.research.intel-research.net:8088 ssh.intel-research.net`. 
+If the command does not work, add your user account before the `ssh.intel-research.net` as follows,
+`ssh -L 8088:mlwins-v01.research.intel-research.net:8088 [YOUR_USER_NAME]@ssh.intel-research.net`
 - Update the common configuration file [common_config.json](common_config.json)
 
 ```json
@@ -114,4 +114,12 @@ python3 main_rl.py --use_case=nqos_split
 or
 ```
 python3 main_rl.py --use_case=qos_steer
+```
+- If the port forwading is broken, the python program stops after sending out the start request as shown in the following:
+```
+[qos_steer] use case selected.
+[30] Number of users selected.
+...
+[YOUR_ALGORITHM_NAME]-gym-client-GMA-0 started
+[YOUR_ALGORITHM_NAME]-gym-client-GMA-0 Sending GMASim Start Request…
 ```
