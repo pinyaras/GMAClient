@@ -50,6 +50,14 @@ class GmaSimEnv(gym.Env):
             #print(myarray)
             self.action_space = spaces.MultiDiscrete(myarray)
             self.split_ratio_size = 1
+        elif (config_json['gmasim_config']['use_case'] == "network_slicing"):
+            #self.action_space = spaces.Box(low=0, high=1,
+            #                                shape=(self.num_users,), dtype=np.uint8)
+            myarray = np.empty([self.num_users,], dtype=int)
+            myarray.fill(2)
+            #print(myarray)
+            self.action_space = spaces.MultiDiscrete(myarray)
+            self.split_ratio_size = 1
         elif (config_json['gmasim_config']['use_case'] == "nqos_split"):
             self.action_space = spaces.Box(low=0, high=1,
                                             shape=(self.num_users,), dtype=np.float32)
@@ -64,7 +72,7 @@ class GmaSimEnv(gym.Env):
             self.observation_space = spaces.Box(low=0, high=1000,
                                                 shape=(self.num_features,self.num_users), dtype=np.float32)
         else:                                                
-            sys.exit("[" + config_json["rl_agent_config"]['input']  + "] use case is not implemented.")
+            sys.exit("[" + config_json["rl_agent_config"]['input']  + "] input type not valid.")
 
         self.normalize_obs = RunningMeanStd(shape=self.observation_space.shape)
         self.gmasim_client = gmasim_client(id, config_json) #initial gmasim_client
@@ -156,7 +164,7 @@ class GmaSimEnv(gym.Env):
                 print("[WARNING] some feature returns empty measurement, e.g., -1")
         else:
             print("Please specify the input format to flat or matrix")
-        print(observation)
+        # print(observation)
 
         # print(observation.shape)
         self.normalize_obs.update(observation)
@@ -191,8 +199,8 @@ class GmaSimEnv(gym.Env):
             
         else:
             opposite_actions = -1* actions
-            print(actions)
-            print(opposite_actions)
+            # print(actions)
+            # print(opposite_actions)
             # Stack the subtracted and original actions arrays
             stacked_actions = np.vstack((actions, opposite_actions))
 
@@ -380,7 +388,7 @@ class GmaSimEnv(gym.Env):
             print("Please specify the input format to flat or matrix")
 
         # observation = np.vstack([df_phy_lte_max_rate[:]["value"], df_phy_wifi_max_rate[:]["value"], df_load[:]["value"]])
-        print(observation)
+        # print(observation)
 
         self.normalize_obs.update(observation)
         normalized_obs = (observation - self.normalize_obs.mean) / np.sqrt(self.normalize_obs.var)
@@ -445,7 +453,7 @@ class GmaSimEnv(gym.Env):
         # Compute the delay difference between 'Wi-Fi' and 'LTE' for each user
         delay_diffs = df_pivot['wi-fi'].subtract(df_pivot['lte'], axis=0)
         abs_delay_diffs = delay_diffs.abs()
-        print(abs_delay_diffs)
+        # print(abs_delay_diffs)
         local_reward = 1/abs_delay_diffs*100
         reward = abs_delay_diffs.mean()
         return reward
@@ -482,7 +490,7 @@ class GmaSimEnv(gym.Env):
         lte_df = df.loc[df['cid'] == 'LTE']
         # print("LTE_DF",lte_df)
         lte_df = lte_df.groupby('value')['user'].agg(self.user_list).reset_index()
-        print(lte_df)
+        # print(lte_df)
         lte_df.columns = ['id', 'user_list']
         lte_list = lte_df["user_list"].values
 
@@ -530,8 +538,8 @@ class GmaSimEnv(gym.Env):
         delivery_rate = df_rate.loc[df_rate['user'].isin(user_list), 'value'].sum()
         traffic_arrival = df_load.loc[df_load['user'].isin(user_list), 'value'].sum()
 
-        print(delivery_rate)
-        print(traffic_arrival)
+        # print(delivery_rate)
+        # print(traffic_arrival)
 
         est_util_load = traffic_arrival / max_cap
         est_util_rate = delivery_rate / max_cap

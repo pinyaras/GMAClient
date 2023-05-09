@@ -1,0 +1,63 @@
+{
+  "gmasim_config":{
+      "type": "gmasim-start",
+      "use_case": "network_slicing",
+      "simulation_time_s": 5,
+      "random_run": 2,
+      "downlink": true,
+      "max_wait_time_for_action_ms": -1,
+      "enb_locations":{
+        "x":40,
+        "y":0,
+        "z":3
+      },
+      "ap_locations":[
+      ],
+      "num_users": 30,
+      "user_left_right_speed_m/s": 1,
+      "user_location_range":{
+        "min_x":0,
+        "max_x":80,
+        "min_y":0,
+        "max_y":10,
+        "z":1.5
+      },
+      "app_and_measurement_start_time_ms": 1000,
+      "transport_protocol": "udp",
+      "min_udp_rate_per_user_mbps": 2,
+      "max_udp_rate_per_user_mbps": 3,
+      "qos_requirement": {
+        "test_duration_ms": 500,
+        "delay_bound_ms": 100,
+        "delay_violation_target":0.02,
+        "loss_target": 0.001
+      },
+      "GMA": {
+          "downlink_mode": "auto",
+          "uplink_mode": "auto",
+          "measurement_interval_ms": 1000,
+          "measurement_guard_interval_ms": 0,
+          "respond_action_after_measurement": true
+      },
+      "WIFI": {
+        "ap_share_same_band": false,
+        "measurement_interval_ms": 1000,
+        "measurement_guard_interval_ms": 0
+      },
+      "LTE": {
+        "qos_aware_scheduler": true,
+        "resource_block_num": 25,
+        "measurement_interval_ms": 1000,
+        "measurement_guard_interval_ms": 0
+      }
+    },
+  "gmasim_action_template":{
+      "type": "gmasim-action",
+      "end_ts": 0,
+      "downlink": true,
+      "split_ratio_list":[
+        {"cid":"Wi-Fi","user":0,"value":1},
+        {"cid":"LTE","user":0,"value":0}
+      ]
+  }
+}
