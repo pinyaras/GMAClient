@@ -55,9 +55,6 @@ class GmaSimEnv(gym.Env):
             #print(myarray)
             self.action_space = spaces.MultiDiscrete(myarray)
             self.split_ratio_size = 1
-<<<<<<< HEAD
-        elif (config_json['gmasim_config']['use_case'] == "nqos_split" and self.rl_alg != "custom"):
-=======
         elif (config_json['gmasim_config']['use_case'] == "network_slicing"):
             #self.action_space = spaces.Box(low=0, high=1,
             #                                shape=(self.num_users,), dtype=np.uint8)
@@ -67,7 +64,6 @@ class GmaSimEnv(gym.Env):
             self.action_space = spaces.MultiDiscrete(myarray)
             self.split_ratio_size = 1
         elif (config_json['gmasim_config']['use_case'] == "nqos_split"):
->>>>>>> 59534fa57311e38bb0168cfef0fda549a27e9d2d
             self.action_space = spaces.Box(low=0, high=1,
                                             shape=(self.num_users,), dtype=np.float32)
             self.split_ratio_size = 32
