@@ -8,7 +8,7 @@ from stable_baselines3.common.running_mean_std import RunningMeanStd
 
 import pathlib
 import json
-
+import sys
 try:
     # Try to import from the same directory
     from gmasim_open_api import gmasim_client
@@ -63,10 +63,13 @@ class GmaSimEnv(gym.Env):
             #print(myarray)
             self.action_space = spaces.MultiDiscrete(myarray)
             self.split_ratio_size = 1
-        elif (config_json['gmasim_config']['use_case'] == "nqos_split"):
+
+        #This is for SB3
+        elif (config_json['gmasim_config']['use_case'] == "nqos_split" and self.rl_alg != "custom" and "GMA" ):
             self.action_space = spaces.Box(low=0, high=1,
                                             shape=(self.num_users,), dtype=np.float32)
             self.split_ratio_size = 32
+        #This is for CleanRL custom
         elif (config_json['gmasim_config']['use_case'] == "nqos_split" and self.rl_alg == "custom"):
             self.action_space = spaces.Box(low=0, high=1,
                                             shape=(1,), dtype=np.float32)
