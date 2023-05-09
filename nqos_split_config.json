@@ -2,7 +2,7 @@
   "gmasim_config":{
       "type": "gmasim-start",
       "use_case": "nqos_split",
-      "simulation_time_s": 10,
+      "simulation_time_s": 100,
       "random_run": 2,
       "downlink": true,
       "max_wait_time_for_action_ms": -1,
@@ -19,17 +19,17 @@
       "user_left_right_speed_m/s": 2,
       "user_location_range":{
         "min_x":0,
-        "max_x":80,
+        "max_x":65,
         "min_y":0,
         "max_y":10,
         "z":1.5
       },
       "app_and_measurement_start_time_ms": 1000,
-      "transport_protocol": "tcp",
-      "min_udp_rate_per_user_mbps": 2,
-      "max_udp_rate_per_user_mbps": 5,
+      "transport_protocol": "udp",
+      "min_udp_rate_per_user_mbps": 8,
+      "max_udp_rate_per_user_mbps": 8,
       "GMA": {
-          "downlink_mode": "auto",
+          "downlink_mode": "split",
           "uplink_mode": "auto",
           "measurement_interval_ms": 100,
           "measurement_guard_interval_ms": 0,

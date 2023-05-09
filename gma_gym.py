@@ -141,6 +141,10 @@ class GmaSimEnv(gym.Env):
             # observation = np.concatenate([observation, emptyFeatureArray])
             phy_wifi_max_rate = emptyFeatureArray
 
+        df_rate = df_rate[df_rate['cid'] == 'All'].reset_index(drop=True)
+        # print(df_rate)
+        # print(df_rate.shape)
+
 
         if len(df_rate)> 0:
             # observation = np.concatenate([observation, df_rate[:]["value"]])
@@ -149,9 +153,6 @@ class GmaSimEnv(gym.Env):
         else:
             # observation = np.concatenate([observation, emptyFeatureArray])
             phy_df_rate = emptyFeatureArray
-
-
-        
 
         # observation = np.ones((3, 4))
         if self.input == "flat":
@@ -308,7 +309,7 @@ class GmaSimEnv(gym.Env):
         print("step function at time:" + str(df_load["end_ts"][0]))
         dict_wifi_split_ratio = self.df_split_ratio_to_dict(df_split_ratio, "Wi-Fi")
 
-
+        print(dict_wifi_split_ratio)
         if not self.wandb_log_info:
             self.wandb_log_info = dict_wifi_split_ratio
         else:
@@ -363,7 +364,9 @@ class GmaSimEnv(gym.Env):
             # observation = np.concatenate([observation, emptyFeatureArray])
             phy_wifi_max_rate = emptyFeatureArray
 
-
+        df_rate = df_rate[df_rate['cid'] == 'All'].reset_index(drop=True)
+        # print(df_rate)
+        # print(df_rate.shape)
         if len(df_rate)> 0:
             # observation = np.concatenate([observation, df_rate[:]["value"]])
             phy_df_rate = df_rate[:]["value"]
@@ -506,6 +509,8 @@ class GmaSimEnv(gym.Env):
         # print(wifi_list)
         # print(df_ap_id)
 
+        df_rate = df_rate[df_rate['cid'] == 'Wi-Fi'].reset_index(drop=True)
+
         df_rate['value'] = df_rate['value'].replace(0, 0.1)
         df_load['value'] = df_load['value'].replace(0, 0.1)
 
@@ -516,35 +521,47 @@ class GmaSimEnv(gym.Env):
         return est_util_ap0, est_util_ap1
         # return est_util_ap0, est_util_ap1, est_util_cell0
 
-    def estimate_util(self, user_list, df_max_rate, df_rate, df_load  ):
-        
-        #compute estimate utilization with traffic arrival and throughputs
-        #Assume the delivery_rate for both link
-        #TODO: calculate the delivery_rate respect to split-ratio
 
-        # print(df_max_rate)
-        # print(df_load)
-        # print(df_rate)
-        # print(user_list)
-        max_cap_sum = df_max_rate.loc[df_max_rate['user'].isin(user_list), 'value'].sum() #sum(max-rate)
-        
-        if len(user_list) > 0:
-            num_user_per_sta = len(user_list)   #number of users per AP
-        else:
-            num_user_per_sta = 0 # No users connected to this devices
+    def estimate_util(self, user_list, max_rate_df, rate_df, load_df):
+        """
+        Estimates the utilization of a WiFi network based on traffic arrival and throughputs.
 
-        max_cap = max_cap_sum / num_user_per_sta 
+        Args:
+            user_list (list): A list of users connected to the access point.
+            max_rate_df (pd.DataFrame): A dataframe containing the maximum rate of each user in the network.
+            rate_df (pd.DataFrame): A dataframe containing the delivery rate for each user in the network.
+            load_df (pd.DataFrame): A dataframe containing the traffic arrival rate for each user in the network.
 
-        delivery_rate = df_rate.loc[df_rate['user'].isin(user_list), 'value'].sum()
-        traffic_arrival = df_load.loc[df_load['user'].isin(user_list), 'value'].sum()
+        Returns:
+            tuple: A tuple containing the estimated utilization based on traffic arrival rate and delivery rate, 
+                and the number of users per access point.
+        """
 
-        # print(delivery_rate)
-        # print(traffic_arrival)
+        # Input validation
+        required_cols = ["user", "value"]
+        assert all(col in max_rate_df.columns for col in required_cols), "max_rate_df is missing required columns"
+        assert all(col in rate_df.columns for col in required_cols), "rate_df is missing required columns"
+        assert all(col in load_df.columns for col in required_cols), "load_df is missing required columns"
+        assert isinstance(user_list, list), "user_list must be a list"
 
-        est_util_load = traffic_arrival / max_cap
-        est_util_rate = delivery_rate / max_cap
+        # Subset dataframes for user list
+        max_rate_subset = max_rate_df[max_rate_df["user"].isin(user_list)]
+        rate_subset = rate_df[rate_df["user"].isin(user_list)]
+        load_subset = load_df[load_df["user"].isin(user_list)]
 
-        return est_util_load, est_util_rate, num_user_per_sta
+        # Calculate maximum capacity
+        num_users = max(len(user_list), 0.01)
+        max_capacity = max_rate_subset["value"].sum() / num_users
+
+        # Calculate delivery rate and traffic arrival rate
+        delivery_rate = rate_subset["value"].sum()
+        traffic_arrival = load_subset["value"].sum()
+
+        # Calculate estimated utilization
+        est_util_load = traffic_arrival / max_capacity
+        est_util_rate = delivery_rate / max_capacity
+
+        return est_util_load, est_util_rate, num_users
 
 
     def get_reward(self, df_owd, df_load, df_rate, df_qos_rate):
