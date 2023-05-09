@@ -3,3 +3,5 @@ gmasim_open_api.py
 /runs
 /models
 /__pycache__
+common_config.json
+.gitignore

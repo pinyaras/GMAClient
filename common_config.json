@@ -8,7 +8,7 @@
     "link_type": "lte",
     "policy": "MlpPolicy",
     "train": true,
-    "reward_type" : "utility",
+    "reward_type" : "delay",
     "input": "matrix"
   }
 }
