@@ -156,6 +156,8 @@ def main():
         f = open(FILE_PATH / 'nqos_split_config.json')
     elif(args.use_case == "qos_steer"):
         f = open(FILE_PATH / 'qos_steer_config.json')
+    elif(args.use_case == "network_slicing"):
+        f = open(FILE_PATH / 'network_slicing_config.json')
     else:
        sys.exit("[" + args.use_case + "] use case is not implemented.")
 
@@ -198,6 +200,18 @@ def main():
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         # save_code=True,  # optional
     )
+
+    if config_json['algorithm_client_identity'] == 'test_id':
+        #username = wandb.api_key.split()[0].split("@")[0]
+        username = run.entity
+        print(username)
+        if username == '':
+            print('***[WARNING]*** You are using the default "test_id" and may conflict with the simulations launched from other users.')
+            print('***[WARNING]*** Please enable wandb online mode, .e.g, wandb online. We will use the wandb username to connect to database server.')
+            print('***[WARNING]*** Or change the "algorithm_client_identity" attribute in the common_config.json to your name or project name')
+        else:
+            print('use wandb username ['+username+'] as algorithm client id to connect to the server')
+            config_json['algorithm_client_identity'] = username
 
     alg_map = {
         'PPO': PPO,

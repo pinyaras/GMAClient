@@ -55,7 +55,19 @@ class GmaSimEnv(gym.Env):
             #print(myarray)
             self.action_space = spaces.MultiDiscrete(myarray)
             self.split_ratio_size = 1
+<<<<<<< HEAD
         elif (config_json['gmasim_config']['use_case'] == "nqos_split" and self.rl_alg != "custom"):
+=======
+        elif (config_json['gmasim_config']['use_case'] == "network_slicing"):
+            #self.action_space = spaces.Box(low=0, high=1,
+            #                                shape=(self.num_users,), dtype=np.uint8)
+            myarray = np.empty([self.num_users,], dtype=int)
+            myarray.fill(2)
+            #print(myarray)
+            self.action_space = spaces.MultiDiscrete(myarray)
+            self.split_ratio_size = 1
+        elif (config_json['gmasim_config']['use_case'] == "nqos_split"):
+>>>>>>> 59534fa57311e38bb0168cfef0fda549a27e9d2d
             self.action_space = spaces.Box(low=0, high=1,
                                             shape=(self.num_users,), dtype=np.float32)
             self.split_ratio_size = 32
@@ -73,7 +85,7 @@ class GmaSimEnv(gym.Env):
             self.observation_space = spaces.Box(low=0, high=1000,
                                                 shape=(self.num_features,self.num_users), dtype=np.float32)
         else:                                                
-            sys.exit("[" + config_json["rl_agent_config"]['input']  + "] use case is not implemented.")
+            sys.exit("[" + config_json["rl_agent_config"]['input']  + "] input type not valid.")
 
         self.normalize_obs = RunningMeanStd(shape=self.observation_space.shape)
         self.gmasim_client = gmasim_client(id, config_json) #initial gmasim_client
@@ -107,6 +119,8 @@ class GmaSimEnv(gym.Env):
         df_owd = df_list[5]
         df_split_ratio = df_list[6]
         df_ap_id = df_list[7]
+
+        df_rate = df_rate[df_rate['cid'] == 'All'].reset_index(drop=True) #keep the flow rate.
 
         print("Reset Function at time:" + str(df_load["end_ts"][0]))
         #if self.enable_rl_agent and not ok_flag:
@@ -162,7 +176,7 @@ class GmaSimEnv(gym.Env):
                 print("[WARNING] some feature returns empty measurement, e.g., -1")
         else:
             print("Please specify the input format to flat or matrix")
-        print(observation)
+        # print(observation)
 
         # print(observation.shape)
         self.normalize_obs.update(observation)
@@ -197,8 +211,8 @@ class GmaSimEnv(gym.Env):
         #RL action for CleanRL
         else:
             opposite_actions = -1* actions
-            print(actions)
-            print(opposite_actions)
+            # print(actions)
+            # print(opposite_actions)
             # Stack the subtracted and original actions arrays
             stacked_actions = np.vstack((actions, opposite_actions))
 
@@ -297,6 +311,11 @@ class GmaSimEnv(gym.Env):
         df_owd = df_list[5]
         df_split_ratio = df_list[6]
         df_ap_id = df_list[7]
+        
+        df_rate = df_rate[df_rate['cid'] == 'All'].reset_index(drop=True) #keep the flow rate.
+        #df_wifi_rate = df_rate[df_rate['cid'] == 'Wi-Fi'].reset_index(drop=True) #keep the Wi-Fi rate.
+        #df_lte_rate = df_rate[df_rate['cid'] == 'LTE'].reset_index(drop=True) #keep the LTE rate.
+
         # print (df_ap_id)
         print("step function at time:" + str(df_load["end_ts"][0]))
         dict_wifi_split_ratio = self.df_split_ratio_to_dict(df_split_ratio, "Wi-Fi")
@@ -446,7 +465,7 @@ class GmaSimEnv(gym.Env):
         # Compute the delay difference between 'Wi-Fi' and 'LTE' for each user
         delay_diffs = df_pivot['wi-fi'].subtract(df_pivot['lte'], axis=0)
         abs_delay_diffs = delay_diffs.abs()
-        print(abs_delay_diffs)
+        # print(abs_delay_diffs)
         local_reward = 1/abs_delay_diffs*100
         reward = abs_delay_diffs.mean()
         return local_reward
@@ -483,7 +502,7 @@ class GmaSimEnv(gym.Env):
         lte_df = df.loc[df['cid'] == 'LTE']
         # print("LTE_DF",lte_df)
         lte_df = lte_df.groupby('value')['user'].agg(self.user_list).reset_index()
-        print(lte_df)
+        # print(lte_df)
         lte_df.columns = ['id', 'user_list']
         lte_list = lte_df["user_list"].values
 
