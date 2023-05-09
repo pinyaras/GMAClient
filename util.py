@@ -1,5 +1,7 @@
 import torch
 import numpy as np
+import pandas as pd
+
 def convert_owd(df_owd):
 
     # can you add a check what if Wi-Fi or LTE link does not have measurement....
@@ -18,20 +20,65 @@ def convert_owd(df_owd):
 #     traffic ,rate_1, rate_2 = s_t[ueid]
 #     ratio = rate_1 / (rate_1 + rate_2)
 
-def guided_exploration(action_mean, delay_list, ue_noise, delay_diff):
-    d1,d2 = delay_list
-    if delay_diff < 2:
-        ue_noise = 0.00
+def verify_LTE_owd(df):
+    """
+    Verifies if every user in the input DataFrame has an entry with 'LTE' in the 'cid' column.
 
-    sample_action = action_mean + torch.normal(action_mean, ue_noise)
-    print("action_mean :",action_mean, " sample action :" ,sample_action, " d1 :",d1, " d2 :",d2, "diff :",delay_diff)
-    original_action = action_mean
+    Args:
+        df (pandas.DataFrame): Input DataFrame with columns 'user' and 'cid'.
+
+    Returns:
+        bool: True if every user has an entry with 'LTE' in the 'cid' column, False otherwise.
+    """
+    # Count the number of unique users
+    num_users = len(df['user'].unique())
+
+    # Count the number of entries with 'LTE' in the 'cid' column
+    num_lte_entries = df.loc[df['cid'] == 'LTE', 'user'].nunique()
+
+    print("***************************",num_lte_entries)
+
+    # Check if the counts are equal
+    if num_users == num_lte_entries:
+        return True
+    else:
+        return False
+
+
+def check_LTE_owd(df):
+
+    # get the unique set of users
+    users = df['user'].unique()
+
+    # loop through each user and check if there is a 'LTE' entry in the 'cid' column
+    # if not, add an entry with a value of 0
+    for user in users:
+        if 'LTE' not in df.loc[df['user'] == user, 'cid'].values:
+            last_wifi_entry = df.loc[(df['user'] == user) & (df['cid'] == 'Wi-Fi')].tail(1)
+            new_entry = last_wifi_entry.copy()
+            new_entry['cid'] = 'LTE'
+            new_entry['value'] = 0.0
+            df = pd.concat([df, new_entry])
+
+    return df
+
+def guided_exploration(action_mean, explore_action ,delay_list, delay_thresh):
+    d1,d2, delay_diff = delay_list
+    action_mean = action_mean.cpu().numpy()
+    explore_action = explore_action.cpu().numpy()
+
+    # if delay_diff < 2:
+    #     ue_noise = 0.00
+
+    # sample_action = action_mean + torch.normal(action_mean, ue_noise)
+    print("action_mean :",action_mean, " sample action :" ,explore_action, " d1 :",d1, " d2 :",d2, "diff :",delay_diff)
+    # original_action = action_mean
     guided_action = action_mean
-    if delay_diff > 2:
+    if delay_diff > delay_thresh:
         if d1 < d2:
             print("Increasing traffic to Link1")
 
-            diff = sample_action-action_mean
+            diff = explore_action-action_mean
             # if action_mean < 0:
             #     action_mean = 0.0
             offset = action_mean + abs(diff)
@@ -41,7 +88,7 @@ def guided_exploration(action_mean, delay_list, ue_noise, delay_diff):
         elif d1 > d2:
 
             print("Increasing traffic to Link2")
-            diff = sample_action-action_mean
+            diff = explore_action-action_mean
             # if action_mean > 0:
             #     action_mean = 0.0
             offset = action_mean - abs(diff)
@@ -50,6 +97,5 @@ def guided_exploration(action_mean, delay_list, ue_noise, delay_diff):
 
     else:
         guided_action = action_mean
-        freeze = False
     print("guieded action :",guided_action)
-    return guided_action, freeze
+    return guided_action

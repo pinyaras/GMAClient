@@ -37,11 +37,16 @@ class GmaSimEnv(gym.Env):
 
     def __init__(self, id, config_json, wandb):
         super().__init__()
-        # Define action and observation space
+
+        #Define config params
         self.num_features = NUM_FEATURES
         self.num_users = int(config_json['gmasim_config']['num_users'])
         self.input = config_json["rl_agent_config"]['input'] 
+        self.rl_alg = config_json['rl_agent_config']['agent'] 
+        self.reward_type = config_json["rl_agent_config"]["reward_type"]
+        self.enable_rl_agent = config_json['enable_rl_agent'] 
 
+        # Define action and observation space
         if (config_json['gmasim_config']['use_case'] == "qos_steer"):
             #self.action_space = spaces.Box(low=0, high=1,
             #                                shape=(self.num_users,), dtype=np.uint8)
@@ -50,9 +55,13 @@ class GmaSimEnv(gym.Env):
             #print(myarray)
             self.action_space = spaces.MultiDiscrete(myarray)
             self.split_ratio_size = 1
-        elif (config_json['gmasim_config']['use_case'] == "nqos_split"):
+        elif (config_json['gmasim_config']['use_case'] == "nqos_split" and self.rl_alg != "custom"):
             self.action_space = spaces.Box(low=0, high=1,
                                             shape=(self.num_users,), dtype=np.float32)
+            self.split_ratio_size = 32
+        elif (config_json['gmasim_config']['use_case'] == "nqos_split" and self.rl_alg == "custom"):
+            self.action_space = spaces.Box(low=0, high=1,
+                                            shape=(1,), dtype=np.float32)
             self.split_ratio_size = 32
         else:
             sys.exit("[" + config_json['gmasim_config']['use_case'] + "] use case is not implemented.")
@@ -69,10 +78,8 @@ class GmaSimEnv(gym.Env):
         self.normalize_obs = RunningMeanStd(shape=self.observation_space.shape)
         self.gmasim_client = gmasim_client(id, config_json) #initial gmasim_client
         self.max_counter = int(config_json['gmasim_config']['simulation_time_s'] * 1000/config_json['gmasim_config']['GMA']['measurement_interval_ms'])# Already checked the interval for Wi-Fi and LTE in the main file
-        self.reward_type = config_json["rl_agent_config"]["reward_type"]
-        self.enable_rl_agent = config_json['enable_rl_agent'] 
+
         #self.link_type = config_json['rl_agent_config']['link_type'] 
-        self.rl_alg = config_json['rl_agent_config']['agent'] 
         self.current_step = 0
         self.max_steps = STEPS_PER_EPISODE
         self.current_ep = 0
@@ -187,7 +194,7 @@ class GmaSimEnv(gym.Env):
 
             # Scale the subtracted actions to the range [0, self.split_ratio_size]
             scaled_stacked_actions= np.interp(stacked_actions, (0, 1), (0, self.split_ratio_size))
-            
+        #RL action for CleanRL
         else:
             opposite_actions = -1* actions
             print(actions)
@@ -360,8 +367,6 @@ class GmaSimEnv(gym.Env):
             # observation = np.concatenate([observation, emptyFeatureArray])
             phy_df_rate = emptyFeatureArray
 
- 
-
 
         # observation = np.ones((3, 4))
         if self.input == "flat":
@@ -384,7 +389,7 @@ class GmaSimEnv(gym.Env):
         #Get reward
         rewards, avg_delay, avg_datarate = self.get_reward(df_owd, df_load, df_rate, df_qos_rate)
         
-        return normalized_obs, rewards, avg_delay, df_owd
+        return normalized_obs, rewards, avg_delay, df_owd, observation
 
     def netowrk_util(self, throughput, delay, alpha=0.5):
         """
@@ -444,7 +449,7 @@ class GmaSimEnv(gym.Env):
         print(abs_delay_diffs)
         local_reward = 1/abs_delay_diffs*100
         reward = abs_delay_diffs.mean()
-        return reward
+        return local_reward
 
     def user_list(self, x):
         return list(x.unique())
@@ -599,7 +604,9 @@ class GmaSimEnv(gym.Env):
         elif self.reward_type == "wifi_qos_user_num":
             reward = self.calculate_wifi_qos_user_num(df_qos_rate_wifi[:]["value"])
         elif self.reward_type == "delay_diff":
-            reward = self.delay_to_scale(self.calculate_delay_diff(df_owd))
+            # reward = self.delay_to_scale(self.calculate_delay_diff(df_owd))
+            reward = self.calculate_delay_diff(df_owd)
+
         else:
             print("reward type not supported yet")
 
@@ -652,7 +659,7 @@ class GmaSimEnv(gym.Env):
         self.send_action(actions)
 
         #2.) Get measurements from gamsim and normalize obs and reward
-        normalized_obs, reward, avg_delay, df_owd = self.get_obs_reward()
+        normalized_obs, reward, avg_delay, df_owd, obs = self.get_obs_reward()
 
         # send info to wandb
         self.wandb.log(self.wandb_log_info)
@@ -670,4 +677,4 @@ class GmaSimEnv(gym.Env):
                 self.first_episode = False
 
         #4.) return observation, reward, done, info
-        return normalized_obs.astype(np.float32), reward, done, {"df_owd": df_owd}
+        return normalized_obs.astype(np.float32), reward, done, {"df_owd": df_owd, "obs" : obs}

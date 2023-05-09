@@ -257,6 +257,8 @@ def arg_parser():
                         help='Select number of users')
     parser.add_argument('--lte_rb', type=int, required=False, default=-1,
                         help='Select number of LTE Resource Blocks')
+
+
     args = parser.parse_args()
     return args
 
