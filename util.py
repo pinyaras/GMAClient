@@ -62,6 +62,31 @@ def check_LTE_owd(df):
 
     return df
 
+def rescale_ratio_tanh(arr):
+    # Define the minimum and maximum values
+    low = -1
+    high = 1
+
+    # Scale the values of the array to the range of [-1, 1]
+    scaled_arr = ((2 * (arr - low)) / (high - low)) - 1
+    print(scaled_arr)
+    return scaled_arr
+
+def phy_max_rate_ratio(local_state):
+    lte_link = local_state[0]
+    wifi_link = local_state[1]
+
+    ratio = wifi_link / (wifi_link + lte_link)
+
+    # if wifi_delay > lte_delay:
+    #     split_ratio -= 1
+    # elif lte_delay > wifi_delay:
+    #     split_ratio -= 1
+
+    print(ratio)
+    
+    return rescale_ratio_tanh(ratio)
+
 def guided_exploration(action_mean, explore_action ,delay_list, delay_thresh):
     d1,d2, delay_diff = delay_list
     action_mean = action_mean.cpu().numpy()
