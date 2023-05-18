@@ -26,7 +26,24 @@ pip3 install tensorboard
 - ⚠️ Setup the port forwarding from the local port 8088 to the mlwins-v01 external server port 8088 via the SSH gateway (If you launch the algorithm client at the mlwins-v01 machine, you do not need port forwarding): 
 `ssh -L 8088:mlwins-v01.research.intel-research.net:8088 ssh.intel-research.net`. 
 If the command does not work, add your user account before the `ssh.intel-research.net` as follows,
-`ssh -L 8088:mlwins-v01.research.intel-research.net:8088 [YOUR_USER_NAME]@ssh.intel-research.net`
+`ssh -L 8088:mlwins-v01.research.intel-research.net:8088 [YOUR_USER_NAME]@ssh.intel-research.net`. Also Add the following instructions to your ssh configure file, replace **[YOUR_USER_NAME]** with your user name and update **[PATH_TO_SSH]** accordingly.
+```
+# COMMAND: ssh mlwins
+
+Host gateway
+  HostName ssh.intel-research.net
+  User [YOUR_USER_NAME]
+  Port 22
+  IdentityFile /home/[PATH_TO_SSH]/.ssh/id_rsa
+
+Host mlwins
+  HostName mlwins-v01.research.intel-research.net
+  User [YOUR_USER_NAME]
+  Port 22
+  IdentityFile /home/[PATH_TO_SSH]/.ssh/id_rsa
+  ProxyJump gateway
+  LocalForward 8088 localhost:8088
+```
 - Update the common configuration file [common_config.json](common_config.json)
 
 ```json
