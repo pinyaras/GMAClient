@@ -155,5 +155,4 @@ python3 main_rl.py --use_case=qos_steer
 [YOUR_ALGORITHM_NAME]-gym-client-GMA-0 Sending GMASim Start Request…
 ```
 
-TODO: Website for NetAIGym. 3 Scenarios.
-
+TODO: Create a Website for NetAIGym with 3 Scenarios.
