@@ -4,4 +4,3 @@ gmasim_open_api.py
 /models
 /__pycache__
 common_config.json
-.gitignore
