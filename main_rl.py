@@ -168,10 +168,19 @@ def main():
     config_json = {**common_config_json, **gmasim_config_json}
     config_json['gmasim_config']['use_case'] = args.use_case
 
-    print("[" + str(config_json['gmasim_config']['num_users']) + "] Number of users selected.")
+    if args.use_case == "network_slicing":
+        config_json['gmasim_config']['num_users'] = 0
+
+        for item in config_json['gmasim_config']['slice_list']:
+            config_json['gmasim_config']['num_users'] += item['num_users']
+        if args.num_users != -1:
+            sys.exit("cannot config user number in terminal number for network slicing case.")
 
     if args.num_users != -1:
         config_json['gmasim_config']['num_users'] = args.num_users
+    
+    print("[" + str(config_json['gmasim_config']['num_users']) + "] Number of users selected.")
+
     if args.lte_rb !=-1:
         config_json['gmasim_config']['LTE']['resource_block_num'] = args.lte_rb
 
@@ -206,11 +215,11 @@ def main():
         username = run.entity
         print(username)
         if username == '':
-            print('***[WARNING]*** You are using the default "test_id" and may conflict with the simulations launched from other users.')
-            print('***[WARNING]*** Please enable wandb online mode, .e.g, wandb online. We will use the wandb username to connect to database server.')
-            print('***[WARNING]*** Or change the "algorithm_client_identity" attribute in the common_config.json to your name or project name')
+            print('***[WARNING]*** You are using the default "test_id" to connect to the server, which may conflict with the simulations launched by other users.')
+            print('***[WARNING]*** Please change the "algorithm_client_identity" attribute in the common_config.json file to your email address.')
         else:
-            print('use wandb username ['+username+'] as algorithm client id to connect to the server')
+            print('***[WARNING]*** You are using wandb username ['+username+'] as algorithm client id to connect to the server')
+            print('***[WARNING]*** Please change the "algorithm_client_identity" attribute in the common_config.json file to your email address.')
             config_json['algorithm_client_identity'] = username
 
     alg_map = {

@@ -1,5 +1,5 @@
 {
-  "algorithm_client_port": 8088,
+  "algorithm_client_port": 8092,
   "algorithm_client_identity": "test_id",
   "enable_rl_agent": false,
 
@@ -8,7 +8,7 @@
     "link_type": "lte",
     "policy": "MlpPolicy",
     "train": true,
-    "reward_type" : "delay",
+    "reward_type" : "utility",
     "input": "matrix"
   }
 }

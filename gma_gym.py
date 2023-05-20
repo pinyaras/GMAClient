@@ -325,13 +325,14 @@ class GmaSimEnv(gym.Env):
         else:
             self.wandb_log_info.update(dict_wifi_split_ratio)
 
+        #the process_util function returns error if some of the measurements are empty.
 
-        wifi_util_0, wifi_util_1 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
+        #wifi_util_0, wifi_util_1 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
 
-        self.wandb_log_info.update({"AP0_util_rate": wifi_util_0[0] ,"AP1_util_rate": wifi_util_1[0],
-                                    "AP0_util_load": wifi_util_0[1] ,"AP1_util_load": wifi_util_1[1],
-                                    "AP0_num_user": wifi_util_0[2] ,"AP1_num_user": wifi_util_1[2]
-                                     })
+        #self.wandb_log_info.update({"AP0_util_rate": wifi_util_0[0] ,"AP1_util_rate": wifi_util_1[0],
+        #                            "AP0_util_load": wifi_util_0[1] ,"AP1_util_load": wifi_util_1[1],
+        #                            "AP0_num_user": wifi_util_0[2] ,"AP1_num_user": wifi_util_1[2]
+        #                             })
 
         # wifi_util_0, wifi_util_1, lte_util_0 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
 
