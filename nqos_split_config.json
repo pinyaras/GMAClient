@@ -7,7 +7,7 @@
       "downlink": true,
       "max_wait_time_for_action_ms": -1,
       "enb_locations":{
-        "x":0,
+        "x":5,
         "y":0,
         "z":3
       },
@@ -19,7 +19,7 @@
       "user_left_right_speed_m/s": 2,
       "user_location_range":{
         "min_x":0,
-        "max_x":60,
+        "max_x":55,
         "min_y":0,
         "max_y":10,
         "z":1.5

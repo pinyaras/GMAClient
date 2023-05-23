@@ -311,9 +311,13 @@ class GmaSimEnv(gym.Env):
         df_split_ratio = df_list[6]
         df_ap_id = df_list[7]
         
+        # wifi_util_0, wifi_util_1 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
+        wifi_util_0, wifi_util_1, lte_util_0 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
+
+
         df_rate = df_rate[df_rate['cid'] == 'All'].reset_index(drop=True) #keep the flow rate.
-        #df_wifi_rate = df_rate[df_rate['cid'] == 'Wi-Fi'].reset_index(drop=True) #keep the Wi-Fi rate.
-        #df_lte_rate = df_rate[df_rate['cid'] == 'LTE'].reset_index(drop=True) #keep the LTE rate.
+        # df_wifi_rate = df_rate[df_rate['cid'] == 'Wi-Fi'].reset_index(drop=True) #keep the Wi-Fi rate.
+        # df_lte_rate = df_rate[df_rate['cid'] == 'LTE'].reset_index(drop=True) #keep the LTE rate.
 
         # print (df_ap_id)
         print("step function at time:" + str(df_load["end_ts"][0]))
@@ -326,14 +330,12 @@ class GmaSimEnv(gym.Env):
             self.wandb_log_info.update(dict_wifi_split_ratio)
 
 
-        wifi_util_0, wifi_util_1 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
 
         self.wandb_log_info.update({"AP0_util_rate": wifi_util_0[0] ,"AP1_util_rate": wifi_util_1[0],
-                                    "AP0_util_load": wifi_util_0[1] ,"AP1_util_load": wifi_util_1[1],
-                                    "AP0_num_user": wifi_util_0[2] ,"AP1_num_user": wifi_util_1[2]
+                                    "AP0_num_user": wifi_util_0[2] ,"AP1_num_user": wifi_util_1[2],
+                                    "BS0_num_user": lte_util_0[2] ,"BS0_util_rate": lte_util_0[0]
                                      })
 
-        # wifi_util_0, wifi_util_1, lte_util_0 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
 
         # self.wandb_log_info.update({"AP0_util_rate": wifi_util_0[0] ,"AP1_util_rate": wifi_util_1[0], "Cell0_util_rate": lte_util_0[0],
         #                             "AP0_util_load": wifi_util_0[1] ,"AP1_util_load": wifi_util_1[1], "Cell0_util_load": lte_util_0[1]
@@ -514,20 +516,33 @@ class GmaSimEnv(gym.Env):
         # wifi_list = self.sta_count(df_ap_id)
 
         wifi_list, lte_list = self.sta_count(df_ap_id)
-        # print(wifi_list)
+        # print(lte_list)
         # print(df_ap_id)
+        # print(df_rate)
 
-        df_rate = df_rate[df_rate['cid'] == 'Wi-Fi'].reset_index(drop=True)
+        df_wifi_rate = df_rate[df_rate['cid'] == 'Wi-Fi'].reset_index(drop=True) #keep the Wi-Fi rate.
+        df_lte_rate = df_rate[df_rate['cid'] == 'LTE'].reset_index(drop=True) #keep the LTE rate.
+        # print(df_lte_rate)
 
-        df_rate['value'] = df_rate['value'].replace(0, 0.1)
+        # df_rate = df_rate[df_rate['cid'] == 'Wi-Fi'].reset_index(drop=True)
+
+        df_wifi_rate['value'] = df_wifi_rate['value'].replace(0, 0.1)
+        df_lte_rate['value'] = df_lte_rate['value'].replace(0, 0.1)
+
         df_load['value'] = df_load['value'].replace(0, 0.1)
 
-        est_util_ap0 = self.estimate_util(wifi_list[0], df_phy_wifi_max_rate, df_rate, df_load)
-        est_util_ap1 = self.estimate_util(wifi_list[1], df_phy_wifi_max_rate, df_rate, df_load)
-        # est_util_cell0 = self.estimate_util(lte_list[0], df_phy_lte_max_rate, df_rate, df_load)
+        est_util_ap0 = self.estimate_util(wifi_list[0], df_phy_wifi_max_rate, df_wifi_rate, df_load)
+        est_util_ap1 = self.estimate_util(wifi_list[1], df_phy_wifi_max_rate, df_wifi_rate, df_load)
 
-        return est_util_ap0, est_util_ap1
-        # return est_util_ap0, est_util_ap1, est_util_cell0
+        if df_lte_rate.empty:
+            print("The DataFrame df_lte_rate is empty.")
+            est_util_cell0 = [0.1, 0.1, 0]
+        else:
+            print("The DataFrame df_lte_rate is not empty.")
+            est_util_cell0 = self.estimate_util(lte_list[0], df_phy_lte_max_rate, df_lte_rate, df_load)
+
+        # return est_util_ap0, est_util_ap1
+        return est_util_ap0, est_util_ap1, est_util_cell0
 
 
     def estimate_util(self, user_list, max_rate_df, rate_df, load_df):
@@ -557,17 +572,19 @@ class GmaSimEnv(gym.Env):
         rate_subset = rate_df[rate_df["user"].isin(user_list)]
         load_subset = load_df[load_df["user"].isin(user_list)]
 
-        # Calculate maximum capacity
-        num_users = max(len(user_list), 0.01)
-        max_capacity = max_rate_subset["value"].sum() / num_users
 
         # Calculate delivery rate and traffic arrival rate
         delivery_rate = rate_subset["value"].sum()
         traffic_arrival = load_subset["value"].sum()
 
+        # Calculate maximum capacity
+        num_users = max(len(user_list), 0.01)
+        max_capacity = max_rate_subset["value"].sum() 
+        weighted_max_capacity = np.sum(max_rate_subset["value"] * rate_subset["value"]) / delivery_rate
+
         # Calculate estimated utilization
         est_util_load = traffic_arrival / max_capacity
-        est_util_rate = delivery_rate / max_capacity
+        est_util_rate = delivery_rate / weighted_max_capacity
 
         return est_util_load, est_util_rate, num_users
 
