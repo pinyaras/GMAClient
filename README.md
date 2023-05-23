@@ -82,6 +82,11 @@ Host mlwins
         {"x":50,"y":0,"z":3}
       ],
       "num_users" : 4,
+      "slice_list":[ //network slicing use case only, resouce block group (rbg) size maybe 1, 2, 3 or 4, it depends on the resource block num, see table 7.1.6.1-1 of 36.213
+        {"num_users":5,"dedicated_rbg":2,"prioritized_rbg":3,"shared_rbg":4},
+        {"num_users":5,"dedicated_rbg":5,"prioritized_rbg":6,"shared_rbg":7},
+        {"num_users":5,"dedicated_rbg":0,"prioritized_rbg":0,"shared_rbg":100}
+      ],
       "user_left_right_speed_m/s": 1,
       "user_location_range":{//initially, users will be randomly deployed within this x, y range. if user_left_right_speed_m > 0, the user will move left and right within this boundary.
         "min_x":0,
@@ -149,3 +154,5 @@ python3 main_rl.py --use_case=qos_steer
 [YOUR_ALGORITHM_NAME]-gym-client-GMA-0 started
 [YOUR_ALGORITHM_NAME]-gym-client-GMA-0 Sending GMASim Start Request…
 ```
+
+TODO: Create a Website for NetAIGym with 3 Scenarios.
