@@ -7,7 +7,7 @@
       "downlink": true,
       "max_wait_time_for_action_ms": -1,
       "enb_locations":{
-        "x":5,
+        "x":0,
         "y":0,
         "z":3
       },
