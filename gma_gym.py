@@ -41,39 +41,38 @@ class GmaSimEnv(gym.Env):
         #Define config params
         self.num_features = NUM_FEATURES
         self.num_users = int(config_json['gmasim_config']['num_users'])
+        self.use_case = config_json['gmasim_config']['use_case']
+        if self.use_case == "network_slicing":
+            self.num_slices = len(config_json['gmasim_config']['slice_list'])
         self.input = config_json["rl_agent_config"]['input'] 
         self.rl_alg = config_json['rl_agent_config']['agent'] 
         self.reward_type = config_json["rl_agent_config"]["reward_type"]
         self.enable_rl_agent = config_json['enable_rl_agent'] 
 
         # Define action and observation space
-        if (config_json['gmasim_config']['use_case'] == "qos_steer"):
+        if (self.use_case == "qos_steer"):
             #self.action_space = spaces.Box(low=0, high=1,
             #                                shape=(self.num_users,), dtype=np.uint8)
             myarray = np.empty([self.num_users,], dtype=int)
             myarray.fill(2)
             #print(myarray)
             self.action_space = spaces.MultiDiscrete(myarray)
-            self.split_ratio_size = 1
-        elif (config_json['gmasim_config']['use_case'] == "network_slicing"):
-            #self.action_space = spaces.Box(low=0, high=1,
-            #                                shape=(self.num_users,), dtype=np.uint8)
-            myarray = np.empty([self.num_users,], dtype=int)
-            myarray.fill(2)
-            #print(myarray)
-            self.action_space = spaces.MultiDiscrete(myarray)
-            self.split_ratio_size = 1
+            self.action_max_value = 1
+        elif (self.use_case == "network_slicing"):
+            self.action_space = spaces.Box(low=0, high=1,
+                                            shape=(self.num_slices,), dtype=np.float32)
+            self.action_max_value = 5
 
         #This is for SB3
-        elif (config_json['gmasim_config']['use_case'] == "nqos_split" and self.rl_alg != "custom" and "GMA" ):
+        elif (self.use_case == "nqos_split" and self.rl_alg != "custom" and "GMA" ):
             self.action_space = spaces.Box(low=0, high=1,
                                             shape=(self.num_users,), dtype=np.float32)
-            self.split_ratio_size = 32
+            self.action_max_value = 32
         #This is for CleanRL custom
-        elif (config_json['gmasim_config']['use_case'] == "nqos_split" and self.rl_alg == "custom"):
+        elif (self.use_case == "nqos_split" and self.rl_alg == "custom"):
             self.action_space = spaces.Box(low=0, high=1,
                                             shape=(1,), dtype=np.float32)
-            self.split_ratio_size = 32
+            self.action_max_value = 32
         else:
             sys.exit("[" + config_json['gmasim_config']['use_case'] + "] use case is not implemented.")
 
@@ -193,7 +192,7 @@ class GmaSimEnv(gym.Env):
             self.gmasim_client.send([]) #send empty action to GMAsim server
             return
         # elif self.link_type == "wifi" or self.link_type == "lte" :
-        elif self.rl_alg == "SingleLink" :
+        if self.rl_alg == "SingleLink" :
             self.gmasim_client.send(actions) #send empty action to GMAsim server
             return           
 
@@ -205,8 +204,8 @@ class GmaSimEnv(gym.Env):
             # Stack the subtracted and original actions arrays
             stacked_actions = np.vstack((actions, subtracted_actions))
 
-            # Scale the subtracted actions to the range [0, self.split_ratio_size]
-            scaled_stacked_actions= np.interp(stacked_actions, (0, 1), (0, self.split_ratio_size))
+            # Scale the subtracted actions to the range [0, self.action_max_value]
+            scaled_stacked_actions= np.interp(stacked_actions, (0, 1), (0, self.action_max_value))
         #RL action for CleanRL
         else:
             opposite_actions = -1* actions
@@ -215,8 +214,8 @@ class GmaSimEnv(gym.Env):
             # Stack the subtracted and original actions arrays
             stacked_actions = np.vstack((actions, opposite_actions))
 
-            # Scale the subtracted actions to the range [0, self.split_ratio_size]
-            scaled_stacked_actions= np.interp(stacked_actions, (-1, 1), (0, self.split_ratio_size))
+            # Scale the subtracted actions to the range [0, self.action_max_value]
+            scaled_stacked_actions= np.interp(stacked_actions, (-1, 1), (0, self.action_max_value))
 
 
         # Round the scaled subtracted actions to integers
@@ -224,26 +223,30 @@ class GmaSimEnv(gym.Env):
 
         print("action --> " + str(rounded_scaled_stacked_actions))
         action_list = []
-        for user_id in range(self.num_users):
-            #wifi_ratio + lte_ratio = step size == self.split_ratio_size
-            # wifi_ratio = 14 #place holder
-            # lte_ratio = 18 #place holder
-            action_list.append({"cid":"Wi-Fi","user":int(user_id),"value":int(rounded_scaled_stacked_actions[0][user_id])})#config wifi ratio for user: user_id
-            action_list.append({"cid":"LTE","user":int(user_id),"value":int(rounded_scaled_stacked_actions[1][user_id])})#config lte ratio for user: user_id
+
+        if self.use_case == "network_slicing":
+            for slice_id in range(self.num_slices):
+                action_list.append({"slice":int(slice_id),"D":int(rounded_scaled_stacked_actions[0][slice_id]),"P":int(0),"S":int(50)})
+
+        else:
+            for user_id in range(self.num_users):
+                #wifi_ratio + lte_ratio = step size == self.action_max_value
+                # wifi_ratio = 14 #place holder
+                # lte_ratio = 18 #place holder
+                action_list.append({"cid":"Wi-Fi","user":int(user_id),"value":int(rounded_scaled_stacked_actions[0][user_id])})#config wifi ratio for user: user_id
+                action_list.append({"cid":"LTE","user":int(user_id),"value":int(rounded_scaled_stacked_actions[1][user_id])})#config lte ratio for user: user_id
+
+                wifistr = f'UE%d_Wi-Fi_ACTION' % (user_id)
+                ltestr = f'UE%d_LTE_ACTION' % (user_id)
+                df_dict = {wifistr:rounded_scaled_stacked_actions[0][user_id], ltestr:rounded_scaled_stacked_actions[1][user_id]}
+
+                if not self.wandb_log_info:
+                    self.wandb_log_info = df_dict
+                else:
+                    self.wandb_log_info.update(df_dict)
 
         self.last_action_list = action_list
         self.gmasim_client.send(action_list) #send action to GMAsim server
-
-        for user_id in range(self.num_users):
-
-            wifistr = f'UE%d_Wi-Fi_ACTION' % (user_id)
-            ltestr = f'UE%d_LTE_ACTION' % (user_id)
-            df_dict = {wifistr:rounded_scaled_stacked_actions[0][user_id], ltestr:rounded_scaled_stacked_actions[1][user_id]}
-
-            if not self.wandb_log_info:
-                self.wandb_log_info = df_dict
-            else:
-                self.wandb_log_info.update(df_dict)
 
 
 
@@ -324,13 +327,14 @@ class GmaSimEnv(gym.Env):
         print("step function at time:" + str(df_load["end_ts"][0]))
         dict_wifi_split_ratio = self.df_split_ratio_to_dict(df_split_ratio, "Wi-Fi")
 
-        print(dict_wifi_split_ratio)
+        print("Wi-Fi Split Ratio:" + str(dict_wifi_split_ratio))
         if not self.wandb_log_info:
             self.wandb_log_info = dict_wifi_split_ratio
         else:
             self.wandb_log_info.update(dict_wifi_split_ratio)
 
         #the process_util function returns error if some of the measurements are empty.
+
 
 
 

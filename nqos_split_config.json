@@ -2,7 +2,7 @@
   "gmasim_config":{
       "type": "gmasim-start",
       "use_case": "nqos_split",
-      "simulation_time_s": 200,
+      "simulation_time_s": 20,
       "random_run": 2,
       "downlink": true,
       "max_wait_time_for_action_ms": -1,
@@ -50,7 +50,8 @@
       "type": "gmasim-action",
       "end_ts": 0,
       "downlink": true,
-      "split_ratio_list":[
+      "action_name":"split_ratio",
+      "action_list":[
         {"cid":"Wi-Fi","user":0,"value":1},
         {"cid":"LTE","user":0,"value":1}
       ]

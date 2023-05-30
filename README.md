@@ -128,7 +128,7 @@ Host mlwins
       "type": "gmasim-action",
       "end_ts": 0,
       "downlink": true,
-      "split_ratio_list":[
+      "action_list":[
         {"cid":"Wi-Fi","user":0,"value":1},
         {"cid":"LTE","user":0,"value":1}
       ]
