@@ -524,12 +524,18 @@ class GmaSimEnv(gym.Env):
 
         df_load['value'] = df_load['value'].replace(0, 0.1)
 
+        
+        
+ 
         for wifi_sta in wifi_list:
             # print(wifi_sta)
-            est_util = self.estimate_util(wifi_sta, df_phy_wifi_max_rate, df_wifi_rate, df_load)
+            if df_wifi_rate.empty or len(df_phy_wifi_max_rate)==0:
+                est_util = [0.0, 0]
+            else:
+                est_util = self.estimate_util(wifi_sta, df_phy_wifi_max_rate, df_wifi_rate, df_load)
             est_util_list.append(est_util)
 
-        if df_lte_rate.empty:
+        if df_lte_rate.empty or len(df_phy_lte_max_rate)==0:
             # print("The DataFrame df_lte_rate is empty.")
             est_util_cell0 = [0.0, 0]
         else:
