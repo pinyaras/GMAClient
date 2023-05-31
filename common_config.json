@@ -4,7 +4,7 @@
   "enable_rl_agent": true,
 
   "rl_agent_config":{
-    "agent": "PPO",
+    "agent": "custom",
     "link_type": "lte",
     "policy": "MlpPolicy",
     "train": true,
