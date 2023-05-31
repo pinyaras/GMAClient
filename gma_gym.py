@@ -313,9 +313,10 @@ class GmaSimEnv(gym.Env):
         df_owd = df_list[5]
         df_split_ratio = df_list[6]
         df_ap_id = df_list[7]
-        
-        # wifi_util_0, wifi_util_1 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
-        wifi_util_0, wifi_util_1, lte_util_0 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
+
+        print(df_rate)
+        # wifi_util_0, wifi_util_1, lte_util_0 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
+        wifi_util, lte_util_0 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
 
 
         df_rate = df_rate[df_rate['cid'] == 'All'].reset_index(drop=True) #keep the flow rate.
@@ -335,10 +336,8 @@ class GmaSimEnv(gym.Env):
         #the process_util function returns error if some of the measurements are empty.
 
 
-        self.wandb_log_info.update({"AP0_util_rate": wifi_util_0[0] ,"AP1_util_rate": wifi_util_1[0],
-                                    "AP0_num_user": wifi_util_0[2] ,"AP1_num_user": wifi_util_1[2],
-                                    "BS0_num_user": lte_util_0[2] ,"BS0_util_rate": lte_util_0[0]
-                                     })
+
+
 
 
         # self.wandb_log_info.update({"AP0_util_rate": wifi_util_0[0] ,"AP1_util_rate": wifi_util_1[0], "Cell0_util_rate": lte_util_0[0],
@@ -500,59 +499,73 @@ class GmaSimEnv(gym.Env):
                     wifi_df_copy = pd.concat([wifi_df_copy, new_row], ignore_index=True)
             wifi_list = wifi_df_copy["user_list"].tolist()
 
-
-        # wifi_list = wifi_df["user_list"].tolist()
-
-
         lte_df = df.loc[df['cid'] == 'LTE']
-        # print("LTE_DF",lte_df)
-        lte_df = lte_df.groupby('value')['user'].agg(self.user_list).reset_index()
-        # print(lte_df)
-        lte_df.columns = ['id', 'user_list']
-        lte_list = lte_df["user_list"].values
-
-        # print(lte_list)
+        lte_list = lte_df['user'].tolist()
+        print(lte_list)
 
         return wifi_list,lte_list
 
     def process_util(self, df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id):
 
-        # wifi_list = self.sta_count(df_ap_id)
 
         wifi_list, lte_list = self.sta_count(df_ap_id)
-        # print(lte_list)
-        # print(df_ap_id)
-        # print(df_rate)
+
+        est_util_list = []
 
         df_wifi_rate = df_rate[df_rate['cid'] == 'Wi-Fi'].reset_index(drop=True) #keep the Wi-Fi rate.
         df_lte_rate = df_rate[df_rate['cid'] == 'LTE'].reset_index(drop=True) #keep the LTE rate.
         # print(df_lte_rate)
+        dict_wifi_rate = self.df_to_dict(df_wifi_rate, 'wifi-rate')
+        dict_lte_rate = self.df_to_dict(df_lte_rate, 'lte-rate')
 
-        # df_rate = df_rate[df_rate['cid'] == 'Wi-Fi'].reset_index(drop=True)
+        self.wandb_log_info.update(dict_wifi_rate)
+        self.wandb_log_info.update(dict_lte_rate)
+
+        #Handle when there is traffic over LTE link        
+        if self.num_users != len(lte_list):
+            lte_list = list(range(0,self.num_users))
+            lte_users = ['UE{}_lte-rate'.format(i) for i in lte_list]
+
+            missing_users = list(set(lte_users) - set(df_lte_rate['user']))
+            if len(missing_users) > 0:
+                missing_rows = pd.DataFrame({'user': missing_users, 'value': 0.1})
+                df_lte_rate = df_lte_rate.append(missing_rows, ignore_index=True)
+                print("new rate lte",df_lte_rate)
 
         df_wifi_rate['value'] = df_wifi_rate['value'].replace(0, 0.1)
         df_lte_rate['value'] = df_lte_rate['value'].replace(0, 0.1)
 
         df_load['value'] = df_load['value'].replace(0, 0.1)
 
-        if df_wifi_rate.empty or len(df_phy_wifi_max_rate)==0:
-            print("The DataFrame df_wifi_rate or df_phy_wifi_max_rate is empty.")
-            est_util_ap0 = [0.1, 0.1, 0]
-            est_util_ap1 = [0.1, 0.1, 0]
-        else:
-            #print("The DataFrame df_wifi_rate and df_phy_wifi_max_rate are not empty.")
-            est_util_ap0 = self.estimate_util(wifi_list[0], df_phy_wifi_max_rate, df_wifi_rate, df_load)
-            est_util_ap1 = self.estimate_util(wifi_list[1], df_phy_wifi_max_rate, df_wifi_rate, df_load)
+        est_util_ap0 = self.estimate_util(wifi_list[0], df_phy_wifi_max_rate, df_wifi_rate, df_load)
+        est_util_ap1 = self.estimate_util(wifi_list[1], df_phy_wifi_max_rate, df_wifi_rate, df_load)
+        est_util_list = [est_util_ap0, est_util_ap1]
+        print("WiFI list", wifi_list)
+        print("lte_list", lte_list)
 
-        if df_lte_rate.empty or len(df_phy_lte_max_rate)==0:
-            print("The DataFrame df_lte_rate or df_phy_lte_max_rate is empty.")
-            est_util_cell0 = [0.1, 0.1, 0]
-        else:
-            #print("The DataFrame df_lte_rate and df_phy_lte_max_rate are not empty.")
-            est_util_cell0 = self.estimate_util(lte_list[0], df_phy_lte_max_rate, df_lte_rate, df_load)
+        # for wifi_sta in wifi_list:
+        #     print(wifi_sta)
+        #     est_util = self.estimate_util(wifi_sta, df_phy_wifi_max_rate, df_wifi_rate, df_load)
+        #     est_util_list.append(est_util)
 
-        # return est_util_ap0, est_util_ap1
-        return est_util_ap0, est_util_ap1, est_util_cell0
+        if df_lte_rate.empty:
+            print("The DataFrame df_lte_rate is empty.")
+            est_util_cell0 = [0.0, 0.0, 0]
+        else:
+            print("The DataFrame df_lte_rate is not empty.")
+            est_util_cell0 = self.estimate_util(lte_list, df_phy_lte_max_rate, df_lte_rate, df_load)
+
+        self.wandb_log_info.update({
+                                    "AP0_util_max_rate": est_util_list[0][0] ,"AP1_util_max_rate": est_util_list[1][0],
+                                    "AP0_util_rate": est_util_list[0][1] ,"AP1_util_rate": est_util_list[1][1],
+                                    "AP0_num_user": est_util_list[0][2] ,"AP1_num_user": est_util_list[1][2],
+                                    "AP0_deliver_rate": est_util_list[0][3] ,"AP1_deliver_rate": est_util_list[1][3],
+                                    "AP0_Max_cap": est_util_list[0][4] ,"AP1_Max_cap": est_util_list[1][4],
+                                    "AP0_weight_Max_cap": est_util_list[0][5] ,"AP1_weight_Max_cap": est_util_list[1][5],
+                                    "BS0_num_user": est_util_cell0[2] ,"BS0_util_rate": est_util_cell0[0]
+                                     })
+
+        return est_util_list, est_util_cell0
 
 
     def estimate_util(self, user_list, max_rate_df, rate_df, load_df):
@@ -576,27 +589,53 @@ class GmaSimEnv(gym.Env):
         assert all(col in rate_df.columns for col in required_cols), "rate_df is missing required columns"
         assert all(col in load_df.columns for col in required_cols), "load_df is missing required columns"
         assert isinstance(user_list, list), "user_list must be a list"
+        print(user_list)
+        print(max_rate_df)
+        print(rate_df)
 
         # Subset dataframes for user list
+        selected_users = rate_df['user'].iloc[user_list].tolist()
+
         max_rate_subset = max_rate_df[max_rate_df["user"].isin(user_list)]
-        rate_subset = rate_df[rate_df["user"].isin(user_list)]
-        load_subset = load_df[load_df["user"].isin(user_list)]
+
+        rate_subset = rate_df[rate_df["user"].isin(selected_users)]
+        # load_subset = load_df[load_df["user"].isin(user_list)]
 
 
         # Calculate delivery rate and traffic arrival rate
         delivery_rate = rate_subset["value"].sum()
-        traffic_arrival = load_subset["value"].sum()
+        # traffic_arrival = load_subset["value"].sum()
+        print("max_rate_subset", max_rate_subset["value"])
+        print("rate_subset",rate_subset["value"])
 
         # Calculate maximum capacity
         num_users = max(len(user_list), 0.01)
-        max_capacity = max_rate_subset["value"].sum() 
-        weighted_max_capacity = np.sum(max_rate_subset["value"] * rate_subset["value"]) / delivery_rate
+        max_capacity = max_rate_subset["value"].sum() / num_users 
+        weighted_sum = np.sum(max_rate_subset["value"].values * rate_subset["value"].values)
+        weighted_max_capacity = weighted_sum / delivery_rate
 
+        # if delivery_rate != 0:
+        #     # Calculate weighted_max_capacity
+        #     weighted_max_capacity = np.sum(max_rate_subset * rate_subset) / delivery_rate
+        #     # Check if the result is NaN
+        #     if np.isnan(weighted_max_capacity):
+        #         print("Error: Division resulted in NaN.")
+        #         # sys.exit(1)  # Stop the program
+        #     else:
+        #         print("Weighted Max Capacity:", weighted_max_capacity)
+        # else:
+        #     print("Error: delivery_rate is zero.")
+        #     # sys.exit(1)  # Stop the program        
+        print("Weighted Sum:", weighted_sum)
+        print("delivery_rate:", delivery_rate)
         # Calculate estimated utilization
-        est_util_load = traffic_arrival / max_capacity
-        est_util_rate = delivery_rate / weighted_max_capacity
+        # est_util_load = traffic_arrival / max_capacity
+        est_util_rate_max = delivery_rate / max_capacity
 
-        return est_util_load, est_util_rate, num_users
+        est_util_rate = delivery_rate / weighted_max_capacity
+        print("est_util_rate:", est_util_rate)
+
+        return est_util_rate_max, est_util_rate, num_users,  delivery_rate, max_capacity, weighted_max_capacity
 
 
     def get_reward(self, df_owd, df_load, df_rate, df_qos_rate):
