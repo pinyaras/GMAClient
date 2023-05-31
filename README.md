@@ -1,21 +1,23 @@
-# gmasim-gym-client
-The python-based algorithm client for DD-GMAsim: a ns3-based Data-Driven AI/ML-enabled Multi-Access Network Simulator.
-This release includes the ML algorithms from the [stable-baselines3](https://stable-baselines3.readthedocs.io/en/master/), e.g., PPO, DDPG, SAC, TD3, and A2C.
+# GMASim Client for Network AI Gym
+GMASim Client is a python-based client for NetAIGym: a ns3-based Data-Driven AI/ML-enabled Multi-Access Network Simulator. In this release, GMASim Client supports two use cases nqos_split and qos_steer and includes the ML algorithms from the [stable-baselines3](https://stable-baselines3.readthedocs.io/en/master/), e.g., PPO, DDPG, SAC, TD3, and A2C.
 
+## ⌛ Installation:
+- Clone this repo.
 ```
 git clone https://github.com/pinyaras/GMAClient.git
 ```
-
-## Prerequisite:
-- Download [gmasim_open_api](https://github.com/IntelLabs/gma/blob/master/GMAsim/gmasim_open_api.py) library. If the GMA algorithm client returns errors, try to check if the [gmasim_open_api](https://github.com/IntelLabs/gma/blob/master/GMAsim/gmasim_open_api.py) has any updates.
+- Download the [gmasim_open_api](https://github.com/IntelLabs/gma/blob/master/GMAsim/gmasim_open_api.py) library.
 
 ```
 cd GMAClient
 wget https://raw.githubusercontent.com/IntelLabs/gma/master/GMAsim/gmasim_open_api.py
 ```
-
-## Start GMA Algorithm Client:
-- Install Required Libraries:
+- (Optional) Create a new virtual python environment.
+```
+python3 -m venv gma-db-venv
+source gma-db-venv/bin/activate
+```
+- Install Required Libraries.
 ```
 pip3 install pyzmq
 pip3 install pandas
@@ -23,10 +25,17 @@ pip3 install stable-baselines3
 pip3 install wandb
 pip3 install tensorboard
 ```
-- ⚠️ Setup the port forwarding from the local port 8088 to the mlwins-v01 external server port 8088 via the SSH gateway (If you launch the algorithm client at the mlwins-v01 machine, you do not need port forwarding): 
-`ssh -L 8088:mlwins-v01.research.intel-research.net:8088 ssh.intel-research.net`. 
-If the command does not work, add your user account before the `ssh.intel-research.net` as follows,
-`ssh -L 8088:mlwins-v01.research.intel-research.net:8088 [YOUR_USER_NAME]@ssh.intel-research.net`. Also Add the following instructions to your ssh configure file, replace **[YOUR_USER_NAME]** with your user name and update **[PATH_TO_SSH]** accordingly.
+
+## 🔗 Port Forwarding (Skip this if client is deployed on the mlwins-v01):
+- To setup port forwarding from the local port 8088 to the mlwins-v01 external server port 8088 via the SSH gateway, run the following command in a screen session, e.g., `screen -S port8088`.
+``` 
+ssh -L 8088:mlwins-v01.research.intel-research.net:8088 ssh.intel-research.net
+```
+- If the previous command does not work, add your user account before the `ssh.intel-research.net` as follows.
+```
+ssh -L 8088:mlwins-v01.research.intel-research.net:8088 [YOUR_USER_NAME]@ssh.intel-research.net
+```
+ - If the previous command also does not work, add the following instructions to your ssh configure file, replace **[YOUR_USER_NAME]** with your user name and update **[PATH_TO_SSH]** accordingly.
 ```
 # COMMAND: ssh mlwins
 
@@ -44,12 +53,54 @@ Host mlwins
   ProxyJump gateway
   LocalForward 8088 localhost:8088
 ```
-- Update the common configuration file [common_config.json](common_config.json)
+
+## 🚀 Start GMA Algorithm Client:
+
+- Update the common configuration file [common_config.json](common_config.json). Go to the [⚙️ Configurable File Format](#⚙️-configurable-file-format) Section for more details.
+
+- Update the use case depend configuration file [qos_steer_config.json](qos_steer_config.json) or [nqos_split_config.json](nqos_split_config.json)
+
+
+- Start the client using the following command, and visualize the output in WanDB website.
+```
+python3 main_rl.py --use_case=nqos_split
+```
+or
+```
+python3 main_rl.py --use_case=qos_steer
+```
+- The simulation should be running. However, if the python program stops after sending out the start request as shown in the following, check if the port fowarding is broken.
+```
+[qos_steer] use case selected.
+[30] Number of users selected.
+...
+[YOUR_ALGORITHM_NAME]-gym-client-GMA-0 started
+[YOUR_ALGORITHM_NAME]-gym-client-GMA-0 Sending GMASim Start Request…
+```
+
+## 📁 File Structure:
+
+```
+📦GMASim Client
+┗ 📜main_rl.py (➡️stable-baselines3, ➡️WanDB)
+  ┣ 📜common_config.json
+  ┣ 📜nqos_split_config.json
+  ┣ 📜qos_steer_config.json
+  ┗ 📜gma_gym.py
+    ┗ 📜gmasim_open_api (➡️GMA-Simulator)
+```
+
+- Excuting the 📜 main_rl.py file will start a new simulation. The use case must be selected using the `--use_case` command. Depends on the selected use cases, 📜 nqos_split_config.json or 📜 qos_steer_config.json will be loaded. The 📜common_config.json is used in all use cases.
+- The 📜 main_rl.py create a GMASim environment using the 📜gma_gym.py, it also creates a reinforcement learning agent (from ➡️stable-baselines3) to interact with the GMASim environment. The results are synced to ➡️WanDB database.
+- The GMASim environment (implemented in 📜gma_gym.py) remotely connects to the ns-3 based GMA Simualtor (hosted in vLab machine) using the 📜gmasim_open_api.
+ 
+## ⚙️ Configurable File Format:
+- [common_config.json](common_config.json)
 
 ```json
 {
   "algorithm_client_port": 8088,//do not change
-  "algorithm_client_identity": "test-gym-client",//Make sure to change the "algorithm_client_identity": from "test-algorithm" to "[YOUR_INITIALS]-[ALGORITHM_NAME]". E.g., "mz-baseline".
+  "algorithm_client_identity": "test_id",//Make sure to change the "algorithm_client_identity" to "[YOUR_EMAIL]". E.g., "menglei.zhangz@intel.com".
   "enable_rl_agent": true,//set to true to enable rl agent, set to false to use GMA's baseline algorithm.
 
   "rl_agent_config":{
@@ -62,7 +113,7 @@ Host mlwins
   }
 }
 ```
-- Update the use case depend configuration file [qos_steer_config.json](qos_steer_config.json) or [nqos_split_config.json](nqos_split_config.json)
+- [qos_steer_config.json](qos_steer_config.json) or [nqos_split_config.json](nqos_split_config.json)
 ```json
 {
   "gmasim_config":{
@@ -136,23 +187,8 @@ Host mlwins
 }
 ```
 
+## 🚩 TODOs
 
-
-- Start the client using the following command, and visualize the output in WANDB.
-```
-python3 main_rl.py --use_case=nqos_split
-```
-or
-```
-python3 main_rl.py --use_case=qos_steer
-```
-- If the port forwading is broken, the python program stops after sending out the start request as shown in the following:
-```
-[qos_steer] use case selected.
-[30] Number of users selected.
-...
-[YOUR_ALGORITHM_NAME]-gym-client-GMA-0 started
-[YOUR_ALGORITHM_NAME]-gym-client-GMA-0 Sending GMASim Start Request…
-```
-
-TODO: Create a Website for NetAIGym with 3 Scenarios.
+- TODO 1: Create a Website for NetAIGym including the 3 Scenarios.
+- TODO 2: show two instance (GMA vs DDPG) at the same time, visualize results using WanDB and influxDB.
+- TODO 3: two slice plus demo video for GMAsim.
