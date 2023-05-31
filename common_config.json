@@ -4,11 +4,11 @@
   "enable_rl_agent": true,
 
   "rl_agent_config":{
-    "agent": "custom",
+    "agent": "PPO",
     "link_type": "lte",
     "policy": "MlpPolicy",
     "train": true,
-    "reward_type" : "delay",
+    "reward_type" : "utility",
     "input": "matrix"
   }
 }
