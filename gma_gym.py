@@ -259,40 +259,44 @@ class GmaSimEnv(gym.Env):
     #    return data
 
     def df_to_dict(self, df, description):
-        df['user'] = df['user'].map(lambda u: f'UE{u}_'+description)
+        df_cp = df.copy()
+        df_cp['user'] = df_cp['user'].map(lambda u: f'UE{u}_'+description)
         # Set the index to the 'user' column
-        df = df.set_index('user')
+        df_cp = df_cp.set_index('user')
         # Convert the DataFrame to a dictionary
-        data = df['value'].to_dict()
+        data = df_cp['value'].to_dict()
         return data
 
     def df_lte_to_dict(self, df, description):
-        df['user'] = df['user'].map(lambda u: f'UE{u}_'+description)
+        df_cp = df.copy()
+        df_cp['user'] = df_cp['user'].map(lambda u: f'UE{u}_'+description)
         # Set the index to the 'user' column
-        df = df.set_index('user')
+        df_cp = df_cp.set_index('user')
         # Convert the DataFrame to a dictionary
-        data = df['value'].to_dict()
-        data["LTE_avg_rate"] = df[:]['value'].mean()
-        data["LTE_total"] = df['value'].sum()
+        data = df_cp['value'].to_dict()
+        data["LTE_avg_rate"] = df_cp[:]['value'].mean()
+        data["LTE_total"] = df_cp['value'].sum()
         return data
 
     def df_wifi_to_dict(self, df, description):
-        df['user'] = df['user'].map(lambda u: f'UE{u}_'+description)
+        df_cp = df.copy()
+        df_cp['user'] = df_cp['user'].map(lambda u: f'UE{u}_'+description)
         # Set the index to the 'user' column
-        df = df.set_index('user')
+        df_cp = df_cp.set_index('user')
         # Convert the DataFrame to a dictionary
-        data = df['value'].to_dict()
-        data["WiFI_avg_rate"] = df['value'].mean()
-        data["WiFI_total"] = df['value'].sum()
+        data = df_cp['value'].to_dict()
+        data["WiFI_avg_rate"] = df_cp['value'].mean()
+        data["WiFI_total"] = df_cp['value'].sum()
         return data
 
     def df_split_ratio_to_dict(self, df, cid):
-        df = df[df['cid'] == cid].reset_index(drop=True)
-        df['user'] = df['user'].map(lambda u: f'UE{u}_{cid}_TSU')
+        df_cp = df.copy()
+        df_cp = df_cp[df_cp['cid'] == cid].reset_index(drop=True)
+        df_cp['user'] = df_cp['user'].map(lambda u: f'UE{u}_{cid}_TSU')
         # Set the index to the 'user' column
-        df = df.set_index('user')
+        df_cp = df_cp.set_index('user')
         # Convert the DataFrame to a dictionary
-        data = df['value'].to_dict()
+        data = df_cp['value'].to_dict()
         return data
 
     def get_obs_reward(self):
@@ -567,11 +571,11 @@ class GmaSimEnv(gym.Env):
         # print(rate_df)
 
         # Subset dataframes for user list
-        selected_users = rate_df['user'].iloc[user_list].tolist()
+        #selected_users = rate_df['user'].iloc[user_list].tolist()
 
         max_rate_subset = max_rate_df[max_rate_df["user"].isin(user_list)]
 
-        rate_subset = rate_df[rate_df["user"].isin(selected_users)]
+        rate_subset = rate_df[rate_df["user"].isin(user_list)]
         # load_subset = load_df[load_df["user"].isin(user_list)]
 
 
