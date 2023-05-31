@@ -318,7 +318,7 @@ class GmaSimEnv(gym.Env):
         df_split_ratio = df_list[6]
         df_ap_id = df_list[7]
 
-        print(df_rate)
+        # print(df_rate)
         # wifi_util_0, wifi_util_1, lte_util_0 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
         wifi_util, lte_util_0 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
 
@@ -331,7 +331,7 @@ class GmaSimEnv(gym.Env):
         print("step function at time:" + str(df_load["end_ts"][0]))
         dict_wifi_split_ratio = self.df_split_ratio_to_dict(df_split_ratio, "Wi-Fi")
 
-        print("Wi-Fi Split Ratio:" + str(dict_wifi_split_ratio))
+        #print("Wi-Fi Split Ratio:" + str(dict_wifi_split_ratio))
         if not self.wandb_log_info:
             self.wandb_log_info = dict_wifi_split_ratio
         else:
@@ -351,11 +351,17 @@ class GmaSimEnv(gym.Env):
         #check if the data frame is empty
         if len(df_phy_wifi_max_rate)> 0:
             dict_phy_wifi = self.df_wifi_to_dict(df_phy_wifi_max_rate, "Max-Wi-Fi")
-            self.wandb_log_info.update(dict_phy_wifi)
+            if not self.wandb_log_info:
+                self.wandb_log_info = dict_phy_wifi
+            else:
+                self.wandb_log_info.update(dict_phy_wifi)
         
         if len(df_phy_lte_max_rate)> 0:
             dict_phy_lte = self.df_lte_to_dict(df_phy_lte_max_rate, "Max-LTE")
-            self.wandb_log_info.update(dict_phy_lte)
+            if not self.wandb_log_info:
+                self.wandb_log_info = dict_phy_lte
+            else:
+                self.wandb_log_info.update(dict_phy_lte)
 
         #dict_lte_split_ratio  = self.df_split_ratio_to_dict(df_split_ratio, "LTE")
         #self.wandb_log_info.update(dict_lte_split_ratio)
@@ -505,7 +511,7 @@ class GmaSimEnv(gym.Env):
 
         lte_df = df.loc[df['cid'] == 'LTE']
         lte_list = lte_df['user'].tolist()
-        print(lte_list)
+        # print(lte_list)
 
         return wifi_list,lte_list
 
@@ -522,7 +528,10 @@ class GmaSimEnv(gym.Env):
         dict_wifi_rate = self.df_to_dict(df_wifi_rate, 'wifi-rate')
         dict_lte_rate = self.df_to_dict(df_lte_rate, 'lte-rate')
 
-        self.wandb_log_info.update(dict_wifi_rate)
+        if not self.wandb_log_info:
+            self.wandb_log_info = dict_wifi_rate
+        else:
+            self.wandb_log_info.update(dict_wifi_rate)
         self.wandb_log_info.update(dict_lte_rate)
 
         #Handle when there is traffic over LTE link        
@@ -534,7 +543,7 @@ class GmaSimEnv(gym.Env):
             if len(missing_users) > 0:
                 missing_rows = pd.DataFrame({'user': missing_users, 'value': 0.1})
                 df_lte_rate = df_lte_rate.append(missing_rows, ignore_index=True)
-                print("new rate lte",df_lte_rate)
+                # print("new rate lte",df_lte_rate)
 
         df_wifi_rate['value'] = df_wifi_rate['value'].replace(0, 0.1)
         df_lte_rate['value'] = df_lte_rate['value'].replace(0, 0.1)
@@ -544,8 +553,8 @@ class GmaSimEnv(gym.Env):
         est_util_ap0 = self.estimate_util(wifi_list[0], df_phy_wifi_max_rate, df_wifi_rate, df_load)
         est_util_ap1 = self.estimate_util(wifi_list[1], df_phy_wifi_max_rate, df_wifi_rate, df_load)
         est_util_list = [est_util_ap0, est_util_ap1]
-        print("WiFI list", wifi_list)
-        print("lte_list", lte_list)
+        # print("WiFI list", wifi_list)
+        # print("lte_list", lte_list)
 
         # for wifi_sta in wifi_list:
         #     print(wifi_sta)
@@ -593,9 +602,9 @@ class GmaSimEnv(gym.Env):
         assert all(col in rate_df.columns for col in required_cols), "rate_df is missing required columns"
         assert all(col in load_df.columns for col in required_cols), "load_df is missing required columns"
         assert isinstance(user_list, list), "user_list must be a list"
-        print(user_list)
-        print(max_rate_df)
-        print(rate_df)
+        # print(user_list)
+        # print(max_rate_df)
+        # print(rate_df)
 
         # Subset dataframes for user list
         #selected_users = rate_df['user'].iloc[user_list].tolist()
@@ -609,8 +618,8 @@ class GmaSimEnv(gym.Env):
         # Calculate delivery rate and traffic arrival rate
         delivery_rate = rate_subset["value"].sum()
         # traffic_arrival = load_subset["value"].sum()
-        print("max_rate_subset", max_rate_subset["value"])
-        print("rate_subset",rate_subset["value"])
+        # print("max_rate_subset", max_rate_subset["value"])
+        # print("rate_subset",rate_subset["value"])
 
         # Calculate maximum capacity
         num_users = max(len(user_list), 0.01)
@@ -630,14 +639,14 @@ class GmaSimEnv(gym.Env):
         # else:
         #     print("Error: delivery_rate is zero.")
         #     # sys.exit(1)  # Stop the program        
-        print("Weighted Sum:", weighted_sum)
-        print("delivery_rate:", delivery_rate)
+        # print("Weighted Sum:", weighted_sum)
+        # print("delivery_rate:", delivery_rate)
         # Calculate estimated utilization
         # est_util_load = traffic_arrival / max_capacity
         est_util_rate_max = delivery_rate / max_capacity
 
         est_util_rate = delivery_rate / weighted_max_capacity
-        print("est_util_rate:", est_util_rate)
+        # print("est_util_rate:", est_util_rate)
 
         return est_util_rate_max, est_util_rate, num_users,  delivery_rate, max_capacity, weighted_max_capacity
 
