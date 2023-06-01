@@ -117,6 +117,13 @@ class GmaSimEnv(gym.Env):
         df_owd = df_list[5]
         df_split_ratio = df_list[6]
         df_ap_id = df_list[7]
+        df_phy_lte_slice_id = df_list[8]
+        df_phy_lte_rb_usage = df_list[9]
+        df_delay_violation = df_list[10]
+        #print(df_phy_lte_slice_id)
+        #print(df_phy_lte_rb_usage)
+        #print(df_delay_violation)
+
 
         df_rate = df_rate[df_rate['cid'] == 'All'].reset_index(drop=True) #keep the flow rate.
 
@@ -317,6 +324,12 @@ class GmaSimEnv(gym.Env):
         df_owd = df_list[5]
         df_split_ratio = df_list[6]
         df_ap_id = df_list[7]
+        df_phy_lte_slice_id = df_list[8]
+        df_phy_lte_rb_usage = df_list[9]
+        df_delay_violation = df_list[10]
+        #print(df_phy_lte_slice_id)
+        #print(df_phy_lte_rb_usage)
+        #print(df_delay_violation)
 
         wifi_util, lte_util_0 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
 
@@ -524,9 +537,6 @@ class GmaSimEnv(gym.Env):
 
         df_load['value'] = df_load['value'].replace(0, 0.1)
 
-        
-        
- 
         for wifi_sta in wifi_list:
             # print(wifi_sta)
             if df_wifi_rate.empty or len(df_phy_wifi_max_rate)==0:
