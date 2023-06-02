@@ -117,6 +117,13 @@ class GmaSimEnv(gym.Env):
         df_owd = df_list[5]
         df_split_ratio = df_list[6]
         df_ap_id = df_list[7]
+        df_phy_lte_slice_id = df_list[8]
+        df_phy_lte_rb_usage = df_list[9]
+        df_delay_violation = df_list[10]
+        #print(df_phy_lte_slice_id)
+        #print(df_phy_lte_rb_usage)
+        #print(df_delay_violation)
+
 
         df_rate = df_rate[df_rate['cid'] == 'All'].reset_index(drop=True) #keep the flow rate.
 
@@ -317,6 +324,12 @@ class GmaSimEnv(gym.Env):
         df_owd = df_list[5]
         df_split_ratio = df_list[6]
         df_ap_id = df_list[7]
+        df_phy_lte_slice_id = df_list[8]
+        df_phy_lte_rb_usage = df_list[9]
+        df_delay_violation = df_list[10]
+        #print(df_phy_lte_slice_id)
+        #print(df_phy_lte_rb_usage)
+        #print(df_delay_violation)
 
         wifi_util, lte_util_0 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
 
@@ -326,7 +339,7 @@ class GmaSimEnv(gym.Env):
         print("step function at time:" + str(df_load["end_ts"][0]))
         dict_wifi_split_ratio = self.df_split_ratio_to_dict(df_split_ratio, "Wi-Fi")
 
-        print("Wi-Fi Split Ratio:" + str(dict_wifi_split_ratio))
+        #print("Wi-Fi Split Ratio:" + str(dict_wifi_split_ratio))
         if not self.wandb_log_info:
             self.wandb_log_info = dict_wifi_split_ratio
         else:
@@ -336,11 +349,17 @@ class GmaSimEnv(gym.Env):
         #check if the data frame is empty
         if len(df_phy_wifi_max_rate)> 0:
             dict_phy_wifi = self.df_wifi_to_dict(df_phy_wifi_max_rate, "Max-Wi-Fi")
-            self.wandb_log_info.update(dict_phy_wifi)
+            if not self.wandb_log_info:
+                self.wandb_log_info = dict_phy_wifi
+            else:
+                self.wandb_log_info.update(dict_phy_wifi)
         
         if len(df_phy_lte_max_rate)> 0:
             dict_phy_lte = self.df_lte_to_dict(df_phy_lte_max_rate, "Max-LTE")
-            self.wandb_log_info.update(dict_phy_lte)
+            if not self.wandb_log_info:
+                self.wandb_log_info = dict_phy_lte
+            else:
+                self.wandb_log_info.update(dict_phy_lte)
 
         #dict_lte_split_ratio  = self.df_split_ratio_to_dict(df_split_ratio, "LTE")
         #self.wandb_log_info.update(dict_lte_split_ratio)
@@ -511,7 +530,7 @@ class GmaSimEnv(gym.Env):
             if len(missing_users) > 0:
                 missing_rows = pd.DataFrame({'user': missing_users, 'value': 0.1})
                 df_lte_rate = df_lte_rate.append(missing_rows, ignore_index=True)
-                print("new rate lte",df_lte_rate)
+                # print("new rate lte",df_lte_rate)
 
         df_wifi_rate['value'] = df_wifi_rate['value'].replace(0, 0.1)
         df_lte_rate['value'] = df_lte_rate['value'].replace(0, 0.1)
@@ -520,10 +539,13 @@ class GmaSimEnv(gym.Env):
 
         for wifi_sta in wifi_list:
             # print(wifi_sta)
-            est_util = self.estimate_util(wifi_sta, df_phy_wifi_max_rate, df_wifi_rate, df_load)
+            if df_wifi_rate.empty or len(df_phy_wifi_max_rate)==0:
+                est_util = [0.0, 0]
+            else:
+                est_util = self.estimate_util(wifi_sta, df_phy_wifi_max_rate, df_wifi_rate, df_load)
             est_util_list.append(est_util)
 
-        if df_lte_rate.empty:
+        if df_lte_rate.empty or len(df_phy_lte_max_rate)==0:
             # print("The DataFrame df_lte_rate is empty.")
             est_util_cell0 = [0.0, 0]
         else:
@@ -533,7 +555,11 @@ class GmaSimEnv(gym.Env):
         dict_wifi_rate = self.df_to_dict(df_wifi_rate, 'wifi-rate')
         dict_lte_rate = self.df_to_dict(df_lte_rate, 'lte-rate')
 
-        self.wandb_log_info.update(dict_wifi_rate)
+        if not self.wandb_log_info:
+            self.wandb_log_info = dict_wifi_rate
+        else:
+            self.wandb_log_info.update(dict_wifi_rate)
+        self.wandb_log_info.update(dict_lte_rate)
         self.wandb_log_info.update(dict_lte_rate)
 
         self.wandb_log_info.update({

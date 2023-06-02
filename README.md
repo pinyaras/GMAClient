@@ -91,8 +91,19 @@ python3 main_rl.py --use_case=qos_steer
 ```
 
 - Excuting the 📜 main_rl.py file will start a new simulation. The use case must be selected using the `--use_case` command. Depends on the selected use cases, 📜 nqos_split_config.json or 📜 qos_steer_config.json will be loaded. The 📜common_config.json is used in all use cases.
-- The 📜 main_rl.py create a GMASim environment using the 📜gma_gym.py, it also creates a reinforcement learning agent (from ➡️stable-baselines3) to interact with the GMASim environment. The results are synced to ➡️WanDB database.
-- The GMASim environment (implemented in 📜gma_gym.py) remotely connects to the ns-3 based GMA Simualtor (hosted in vLab machine) using the 📜gmasim_open_api.
+- The 📜 main_rl.py create a GMASim environment (imported from 📜gma_gym.py), which remotely connects to the ns-3 based GMA Simualtor (hosted in vLab machine) using the 📜gmasim_open_api. 📜 main_rl.py also creates a reinforcement learning model (imported from ➡️stable-baselines3) to interact with the GMASim environment. The results are synced to ➡️WanDB database. We provide the following code snippet from the 📜 main_rl.py as an example. After the model is trained using the NetAIGym, it can be easily deployed in any environment.
+```python
+from stable_baselines3 import PPO
+from gma_gym import GmaSimEnv
+import wandb
+
+...
+# training
+env = GmaSimEnv(client_id, config_json, wandb) # passing id, configure file and wanDb as arguments
+model = PPO("MlpPolicy", env, verbose=1) # you can change the env to your deployment environment when the model is trained.
+model.learn(total_timesteps=10_000)
+...
+```
  
 ## ⚙️ Configurable File Format:
 - [common_config.json](common_config.json)
