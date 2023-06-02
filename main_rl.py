@@ -14,6 +14,10 @@ import wandb
 from wandb.integration.sb3 import WandbCallback
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.callbacks import CheckpointCallback
+from nqos_split_helper import single_link_policy
+from nqos_split_helper import nqos_split_helper
+from qos_steer_helper import qos_steer_helper
+from network_slicing_helper import network_slicing_helper
 
 MODEL_SAVE_FREQ = 1000
 LOG_INTERVAL = 10
@@ -78,56 +82,6 @@ def gma_policy(env, config_json):
         # apply the action
         obs, reward, done, info = env.step(action)
 
-def single_link_policy(env, config_json):
-
-    num_steps = 0
-
-    #configure the num_steps based on the JSON file
-    if (config_json['gmasim_config']['GMA']['measurement_interval_ms'] + config_json['gmasim_config']['GMA']['measurement_guard_interval_ms']
-        == config_json['gmasim_config']['WIFI']['measurement_interval_ms'] + config_json['gmasim_config']['WIFI']['measurement_guard_interval_ms']
-        == config_json['gmasim_config']['LTE']['measurement_interval_ms'] + config_json['gmasim_config']['LTE']['measurement_guard_interval_ms']):
-        num_steps = int(config_json['gmasim_config']['simulation_time_s'] * 1000/config_json['gmasim_config']['GMA']['measurement_interval_ms'])
-    else:
-        print(config_json['gmasim_config']['GMA']['measurement_interval_ms'])
-        print(config_json['gmasim_config']['GMA']['measurement_guard_interval_ms'])
-        print(config_json['gmasim_config']['WIFI']['measurement_interval_ms'])
-        print(config_json['gmasim_config']['WIFI']['measurement_guard_interval_ms'])
-        print(config_json['gmasim_config']['LTE']['measurement_interval_ms'])
-        print(config_json['gmasim_config']['LTE']['measurement_guard_interval_ms'])
-        sys.exit('[Error!] The value of GMA, WIFI, and LTE measurement_interval_ms + measurement_guard_interval_ms should be the same!')
-
-
-    done = True
-    for step in range(num_steps):
-        # If the epsiode is up, then start another one
-        if done:
-            obs = env.reset()
-
-        # take random action, but you can also do something more intelligent
-        # action = my_intelligent_agent_fn(obs) 
-
-        #action = env.action_space.sample()
-
-        link_type = config_json['rl_agent_config']['link_type']
-        user_number = config_json['gmasim_config']['num_users']
-        action_list = []
-
-        if link_type == "wifi":
-            wifi_ratio = 32
-            lte_ratio = 0
-
-        elif link_type == "lte":
-            wifi_ratio = 0
-            lte_ratio = 32
-
-        for user_id in range(user_number):
-
-            action_list.append({"cid":"Wi-Fi","user":int(user_id),"value":int(wifi_ratio)})#config wifi ratio for user: user_id
-            action_list.append({"cid":"LTE","user":int(user_id),"value":int(lte_ratio)})#config lte ratio for user: user_id
-
-        # apply the action
-        obs, reward, done, info = env.step(action_list)
-
 
 def evaluate(model, env, n_episodes=NUM_OF_EVALUATE_EPISODES):
     rewards = []
@@ -146,35 +100,40 @@ def evaluate(model, env, n_episodes=NUM_OF_EVALUATE_EPISODES):
 
 def main():
 
-    FILE_PATH = pathlib.Path(__file__).parent
-    #Config the default GMAsim simulation setup in the json file
-    f = open(FILE_PATH / 'common_config.json')
-    common_config_json = json.load(f)
-
     args = arg_parser()
     if(args.use_case == "nqos_split"):
-        f = open(FILE_PATH / 'nqos_split_config.json')
+        use_case_helper = nqos_split_helper()
     elif(args.use_case == "qos_steer"):
-        f = open(FILE_PATH / 'qos_steer_config.json')
+        use_case_helper = qos_steer_helper()
     elif(args.use_case == "network_slicing"):
-        f = open(FILE_PATH / 'network_slicing_config.json')
+        use_case_helper = network_slicing_helper ()
     else:
        sys.exit("[" + args.use_case + "] use case is not implemented.")
 
-    
     print("[" + args.use_case + "] use case selected.")
 
-    gmasim_config_json = json.load(f)
-    config_json = {**common_config_json, **gmasim_config_json}
+    #load config files
+    FILE_PATH = pathlib.Path(__file__).parent
+    #common_config.json is shared by all use cases
+    f = open(FILE_PATH / 'common_config.json')
+    common_config_json = json.load(f)
+    
+    #load the use case dependent config file
+    file_name = args.use_case +'_config.json'
+    f = open(FILE_PATH / file_name)
+
+    use_case_config_json = json.load(f)
+    config_json = {**common_config_json, **use_case_config_json}
     config_json['gmasim_config']['use_case'] = args.use_case
 
     if args.use_case == "network_slicing":
+        # for network slicing, the user number is configured using the slice list. Cannot use the argument parser!
         config_json['gmasim_config']['num_users'] = 0
 
         for item in config_json['gmasim_config']['slice_list']:
             config_json['gmasim_config']['num_users'] += item['num_users']
         if args.num_users != -1:
-            sys.exit("cannot config user number in terminal number for network slicing case.")
+            sys.exit("cannot config user number in terminal number for network slicing use case.")
 
     if args.num_users != -1:
         config_json['gmasim_config']['num_users'] = args.num_users
@@ -188,6 +147,7 @@ def main():
     rl_alg = config_json['rl_agent_config']['agent'] 
 
     if not config_json['enable_rl_agent'] :
+        # rl agent disabled, use the default policy from GMA
         rl_alg = 'GMA'
         config_json['gmasim_config']['GMA']['respond_action_after_measurement'] = False
     else:
@@ -232,10 +192,10 @@ def main():
         'SingleLink': single_link_policy
     }
 
-    model_map = {
-        'MlpPolicy': "MlpPolicy",
-        'CustomLSTMPolicy': "CustomLSTMPolicy",
-    }
+    #model_map = {
+    #    'MlpPolicy': "MlpPolicy",
+    #    'CustomLSTMPolicy': "CustomLSTMPolicy",
+    #}
 
     # Choose the agent
     agent_class = alg_map.get(rl_alg, None)
@@ -244,7 +204,8 @@ def main():
     #client_id = list(alg_map.keys()).index(rl_alg) + 1
     client_id = args.client_id
     # Create the environment
-    env = GmaSimEnv(client_id, config_json, wandb) # pass id, and configure file
+    use_case_helper.set_config(config_json)
+    env = GmaSimEnv(client_id, use_case_helper, config_json, wandb) # pass id, and configure file
 
     if config_json['enable_rl_agent']:
 
