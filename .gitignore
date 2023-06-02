@@ -4,3 +4,4 @@ gmasim_open_api.py
 /models
 /__pycache__
 common_config.json
+nqos_split_config.json
