@@ -84,22 +84,25 @@ python3 main_rl.py --use_case=qos_steer
 📦GMASim Client
 ┗ 📜main_rl.py (➡️stable-baselines3, ➡️WanDB)
   ┣ 📜common_config.json
-  ┣ 📜nqos_split_config.json
-  ┣ 📜qos_steer_config.json
   ┗ 📜gma_gym.py
-    ┗ 📜gmasim_open_api (➡️GMA-Simulator)
+    ┣ 📜gmasim_open_api (➡️GMA-Simulator)
+    ┣ 📜[USE_CASE]_config.json
+    ┗ 📜[USE_CASE]_helper.py
 ```
 
-- Excuting the 📜 main_rl.py file will start a new simulation. The use case must be selected using the `--use_case` command. Depends on the selected use cases, 📜 nqos_split_config.json or 📜 qos_steer_config.json will be loaded. The 📜common_config.json is used in all use cases.
+- Excuting the 📜 main_rl.py file will start a new simulation. The use case must be selected using the `--use_case` command. The 📜common_config.json is used in all use cases. Depends on the selected use cases, th associated 📜[USE_CASE]_config.json and 📜[USE_CASE]_helper.py will be loaded. The 📜[USE_CASE]_helper.py helps preparing observations, rewards and actions for the selected use case.
 - The 📜 main_rl.py create a GMASim environment (imported from 📜gma_gym.py), which remotely connects to the ns-3 based GMA Simualtor (hosted in vLab machine) using the 📜gmasim_open_api. 📜 main_rl.py also creates a reinforcement learning model (imported from ➡️stable-baselines3) to interact with the GMASim environment. The results are synced to ➡️WanDB database. We provide the following code snippet from the 📜 main_rl.py as an example. After the model is trained using the NetAIGym, it can be easily deployed in any environment.
+- This file strcuture isolates the function and variables associated to each use case. Therefore, a new use case can be added by adding 📜[USE_CASE]_config.json and 📜[USE_CASE]_helper.py files. 
+
 ```python
 from stable_baselines3 import PPO
 from gma_gym import GmaSimEnv
+from nqos_split_helper import use_case_helper
 import wandb
 
 ...
 # training
-env = GmaSimEnv(client_id, config_json, wandb) # passing id, configure file and wanDb as arguments
+env = GmaSimEnv(client_id, use_case_helper, config_json, wandb) # passing id, use case helper, configure file and wanDb as arguments
 model = PPO("MlpPolicy", env, verbose=1) # you can change the env to your deployment environment when the model is trained.
 model.learn(total_timesteps=10_000)
 ...
