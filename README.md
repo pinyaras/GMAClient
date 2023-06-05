@@ -63,13 +63,9 @@ Host mlwins
 
 - Start the client using the following command, and visualize the output in WanDB website.
 ```
-python3 main_rl.py --use_case=nqos_split
+python3 main_rl.py --use_case=[USE_CASE]
 ```
-or
-```
-python3 main_rl.py --use_case=qos_steer
-```
-- The simulation should be running. However, if the python program stops after sending out the start request as shown in the following, check if the port fowarding is broken.
+- where [USE_CASE] includes 3 options: `nqso_split`, `qos_steer` and `network_slicing`. If the python program stops after sending out the start request as shown in the following, check if the port fowarding is broken.
 ```
 [qos_steer] use case selected.
 [30] Number of users selected.
@@ -84,15 +80,16 @@ python3 main_rl.py --use_case=qos_steer
 📦GMASim Client
 ┗ 📜main_rl.py (➡️stable-baselines3, ➡️WanDB)
   ┣ 📜common_config.json
-  ┗ 📜gma_gym.py
-    ┣ 📜gmasim_open_api (➡️GMA-Simulator)
+  ┣ 📜gma_gym.py
+  ┣ 📜gmasim_open_api (➡️GMA-Simulator)
+  ┗ 📂[USE_CASE]
     ┣ 📜[USE_CASE]_config.json
     ┗ 📜[USE_CASE]_helper.py
 ```
 
 - Excuting the 📜 main_rl.py file will start a new simulation. The use case must be selected using the `--use_case` command. The 📜common_config.json is used in all use cases. Depends on the selected use cases, th associated 📜[USE_CASE]_config.json and 📜[USE_CASE]_helper.py will be loaded. The 📜[USE_CASE]_helper.py helps preparing observations, rewards and actions for the selected use case.
 - The 📜 main_rl.py create a GMASim environment (imported from 📜gma_gym.py), which remotely connects to the ns-3 based GMA Simualtor (hosted in vLab machine) using the 📜gmasim_open_api. 📜 main_rl.py also creates a reinforcement learning model (imported from ➡️stable-baselines3) to interact with the GMASim environment. The results are synced to ➡️WanDB database. We provide the following code snippet from the 📜 main_rl.py as an example. After the model is trained using the NetAIGym, it can be easily deployed in any environment.
-- This file strcuture isolates the function and variables associated to each use case. Therefore, a new use case can be added by adding 📜[USE_CASE]_config.json and 📜[USE_CASE]_helper.py files. 
+- This file strcuture isolates the function and variables associated to each use case. Therefore, a new use case can be added by adding ad new folder with 📜[USE_CASE]_config.json and 📜[USE_CASE]_helper.py files. 
 
 ```python
 from stable_baselines3 import PPO
