@@ -14,10 +14,10 @@ import wandb
 from wandb.integration.sb3 import WandbCallback
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.callbacks import CheckpointCallback
-from nqos_split_helper import single_link_policy
-from nqos_split_helper import nqos_split_helper
-from qos_steer_helper import qos_steer_helper
-from network_slicing_helper import network_slicing_helper
+from nqos_split.nqos_split_helper import single_link_policy
+from nqos_split.nqos_split_helper import nqos_split_helper
+from qos_steer.qos_steer_helper import qos_steer_helper
+from network_slicing.network_slicing_helper import network_slicing_helper
 
 MODEL_SAVE_FREQ = 1000
 LOG_INTERVAL = 10
@@ -119,7 +119,7 @@ def main():
     common_config_json = json.load(f)
     
     #load the use case dependent config file
-    file_name = args.use_case +'_config.json'
+    file_name = args.use_case + '/' + args.use_case +'_config.json'
     f = open(FILE_PATH / file_name)
 
     use_case_config_json = json.load(f)
