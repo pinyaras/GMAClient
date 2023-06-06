@@ -5,7 +5,6 @@
 
   "rl_agent_config":{
     "agent": "PPO",
-    "link_type": "lte",
     "policy": "MlpPolicy",
     "train": true,
     "reward_type" : "utility",

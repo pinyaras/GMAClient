@@ -3,6 +3,13 @@ import sys
 from gym import spaces
 import numpy as np
 import pandas as pd
+import math
+
+MIN_DATA_RATE = 0
+MAX_DATA_RATE = 100
+
+MIN_DELAY_MS = 0
+MAX_DELAY_MS = 500
 
 def single_link_policy(env, config_json):
 
@@ -10,17 +17,17 @@ def single_link_policy(env, config_json):
 
     #configure the num_steps based on the JSON file
     if (config_json['gmasim_config']['GMA']['measurement_interval_ms'] + config_json['gmasim_config']['GMA']['measurement_guard_interval_ms']
-        == config_json['gmasim_config']['WIFI']['measurement_interval_ms'] + config_json['gmasim_config']['WIFI']['measurement_guard_interval_ms']
+        == config_json['gmasim_config']['Wi-Fi']['measurement_interval_ms'] + config_json['gmasim_config']['Wi-Fi']['measurement_guard_interval_ms']
         == config_json['gmasim_config']['LTE']['measurement_interval_ms'] + config_json['gmasim_config']['LTE']['measurement_guard_interval_ms']):
         num_steps = int(config_json['gmasim_config']['simulation_time_s'] * 1000/config_json['gmasim_config']['GMA']['measurement_interval_ms'])
     else:
         print(config_json['gmasim_config']['GMA']['measurement_interval_ms'])
         print(config_json['gmasim_config']['GMA']['measurement_guard_interval_ms'])
-        print(config_json['gmasim_config']['WIFI']['measurement_interval_ms'])
-        print(config_json['gmasim_config']['WIFI']['measurement_guard_interval_ms'])
+        print(config_json['gmasim_config']['Wi-Fi']['measurement_interval_ms'])
+        print(config_json['gmasim_config']['Wi-Fi']['measurement_guard_interval_ms'])
         print(config_json['gmasim_config']['LTE']['measurement_interval_ms'])
         print(config_json['gmasim_config']['LTE']['measurement_guard_interval_ms'])
-        sys.exit('[Error!] The value of GMA, WIFI, and LTE measurement_interval_ms + measurement_guard_interval_ms should be the same!')
+        sys.exit('[Error!] The value of GMA, Wi-Fi, and LTE measurement_interval_ms + measurement_guard_interval_ms should be the same!')
 
 
     done = True
@@ -34,15 +41,15 @@ def single_link_policy(env, config_json):
 
         #action = env.action_space.sample()
 
-        link_type = config_json['rl_agent_config']['link_type']
+        link_type = config_json['rl_agent_config']['agent']
         user_number = config_json['gmasim_config']['num_users']
         action_list = []
 
-        if link_type == "wifi":
+        if link_type == "Wi-Fi":
             wifi_ratio = 32
             lte_ratio = 0
 
-        elif link_type == "lte":
+        elif link_type == "LTE":
             wifi_ratio = 0
             lte_ratio = 32
 
@@ -55,10 +62,10 @@ def single_link_policy(env, config_json):
         obs, reward, done, info = env.step(action_list)
 
 class nqos_split_helper(use_case_base_helper):
-    def __init__(self):
+    def __init__(self, wandb):
         self.use_case = "nqos_split"
-        self.config_json = None
         self.action_max_value = 32
+        super().__init__(wandb)
 
     def get_action_space(self): 
         if (self.use_case == self.config_json['gmasim_config']['use_case'] and self.config_json['rl_agent_config']['agent'] != "custom" and "GMA" ):
@@ -71,6 +78,10 @@ class nqos_split_helper(use_case_base_helper):
         else:
             sys.exit("[ERROR] wrong use case or RL agent.")
 
+    #consistent with the prepare_observation function.
+    def get_num_of_observation_features(self):
+        return 3
+    
     def prepare_observation(self, df_list):
 
         df_phy_lte_max_rate = df_list[0]
@@ -292,7 +303,7 @@ class nqos_split_helper(use_case_base_helper):
 
     def estimate_util(self, user_list, max_rate_df, rate_df, load_df):
         """
-        Estimates the utilization of a WiFi network based on traffic arrival and throughputs.
+        Estimates the utilization of a Wi-Fi network based on traffic arrival and throughputs.
 
         Args:
             user_list (list): A list of users connected to the access point.
@@ -385,3 +396,156 @@ class nqos_split_helper(use_case_base_helper):
         data["WiFI_avg_rate"] = df_cp['value'].mean()
         data["WiFI_total"] = df_cp['value'].sum()
         return data
+
+    def get_reward(self, df_list):
+
+        df_load = df_list[2]
+        df_rate = df_list[3]
+        df_qos_rate = df_list[4]
+        df_owd = df_list[5]
+        
+        #Convert dataframe of Txrate state to python dict
+        dict_rate = self.df_to_dict(df_rate, 'rate')
+        dict_rate["sum_rate"] = df_rate[:]["value"].sum()
+
+        df_qos_rate_all = df_qos_rate[df_qos_rate['cid'] == 'All'].reset_index(drop=True)
+        df_qos_rate_wifi = df_qos_rate[df_qos_rate['cid'] == 'Wi-Fi'].reset_index(drop=True)
+        dict_qos_rate_all = self.df_to_dict(df_qos_rate_all, 'qos_rate')
+        dict_qos_rate_all["sum_qos_rate"] = df_qos_rate_all[:]["value"].sum()
+
+        dict_qos_rate_wifi = self.df_to_dict(df_qos_rate_wifi, 'wifi_qos_rate')
+        dict_qos_rate_wifi["sum_wifi_qos_rate"] = df_qos_rate_wifi[:]["value"].sum()
+
+        df_owd_fill = df_owd[df_owd['cid'] == 'All'].reset_index(drop=True)
+
+        df_owd_fill = df_owd_fill[["user", "value"]].copy()
+        df_owd_fill["value"] = df_owd_fill["value"].replace(0, 1)#change 0 delay to 1 for plotting
+        df_owd_fill.index = df_owd_fill['user']
+        df_owd_fill = df_owd_fill.reindex(np.arange(0, self.config_json['gmasim_config']['num_users'])).fillna(df_owd_fill["value"].max())#fill empty measurement with max delay
+        df_owd_fill = df_owd_fill[["value"]].reset_index()
+        dict_owd = self.df_to_dict(df_owd_fill, 'owd')
+
+        df_dict = self.df_to_dict(df_load, 'tx_rate')
+        df_dict["sum_tx_rate"] = df_load[:]["value"].sum()
+
+        # _ = self.calculate_delay_diff(df_owd)
+
+        avg_delay = df_owd["value"].mean()
+        max_delay = df_owd["value"].max()
+
+        # Pivot the DataFrame to extract "Wi-Fi" and "LTE" values
+        # df_pivot = df_owd.pivot_table(index="user", columns="cid", values="value", aggfunc="first")[["Wi-Fi", "LTE"]]
+
+        # Rename the columns to "wi-fi" and "lte"
+        # df_pivot.columns = ["wi-fi", "lte"]
+
+        # Sort the index in ascending order
+        # df_pivot.sort_index(inplace=True)
+
+        #check reward type, TODO: add reward combination of delay and throughput from network util function
+        reward = 0
+        if self.config_json["rl_agent_config"]["reward_type"] =="delay":
+            reward = self.delay_to_scale(avg_delay)
+        elif self.config_json["rl_agent_config"]["reward_type"] =="throughput":
+            reward = self.rescale_datarate(df_rate[:]["value"].mean())
+        elif self.config_json["rl_agent_config"]["reward_type"] == "utility":
+            reward = self.netowrk_util(df_rate[:]["value"].mean(), avg_delay)
+        elif self.config_json["rl_agent_config"]["reward_type"] == "delay_diff":
+            # reward = self.delay_to_scale(self.calculate_delay_diff(df_owd))
+            reward = self.calculate_delay_diff(df_owd)
+        else:
+            sys.exit("[ERROR] reward type not supported yet")
+
+        #self.wandb.log(df_dict)
+
+        #self.wandb.log({"step": self.current_step, "reward": reward, "avg_delay": avg_delay, "max_delay": max_delay})
+        if not self.wandb_log_info:
+            self.wandb_log_info = df_dict
+        else:
+            self.wandb_log_info.update(df_dict)
+        self.wandb_log_info.update(dict_rate)
+        self.wandb_log_info.update(dict_qos_rate_all)
+        self.wandb_log_info.update(dict_qos_rate_wifi)
+        self.wandb_log_info.update(dict_owd)
+        self.wandb_log_info.update({"reward": reward, "avg_delay": avg_delay, "max_delay": max_delay})
+
+        return reward
+
+    def netowrk_util(self, throughput, delay, alpha=0.5):
+        """
+        Calculates a network utility function based on throughput and delay, with a specified alpha value for balancing.
+        
+        Args:
+        - throughput: a float representing the network throughput in bits per second
+        - delay: a float representing the network delay in seconds
+        - alpha: a float representing the alpha value for balancing (default is 0.5)
+        
+        Returns:
+        - a float representing the alpha-balanced metric
+        """
+        # Calculate the logarithm of the delay in milliseconds
+        log_delay = -10
+        if delay>0:
+            log_delay = math.log(delay)
+
+        # Calculate the logarithm of the throughput in mb per second
+        log_throughput = -10
+        if throughput>0:
+            log_throughput = math.log(throughput)
+
+        #print("delay:"+str(delay) +" log(owd):"+str(log_delay) + " throughput:" + str(throughput)+ " log(throughput):" + str(log_throughput))
+        
+        # Calculate the alpha-balanced metric
+        alpha_balanced_metric = alpha * log_throughput - (1 - alpha) * log_delay
+
+        alpha_balanced_metric = np.clip(alpha_balanced_metric, -10, 10)
+        
+        return alpha_balanced_metric
+
+    def rescale_datarate(self,data_rate):
+        """
+        Rescales a given reward to the range [-10, 10].
+        """
+        # we should not assume the max throughput is known!!
+        rescaled_reward = ((data_rate - MIN_DATA_RATE) / (MAX_DATA_RATE - MIN_DATA_RATE)) * 20 - 10
+        return rescaled_reward
+
+
+
+    def calculate_delay_diff(self, df_owd):
+
+        # can you add a check what if Wi-Fi or LTE link does not have measurement....
+        
+        #print(qos_rate)
+        df_pivot = df_owd.pivot_table(index="user", columns="cid", values="value", aggfunc="first")[["Wi-Fi", "LTE"]]
+        # Rename the columns to "wi-fi" and "lte"
+        df_pivot.columns = ["wi-fi", "lte"]
+        # Compute the delay difference between 'Wi-Fi' and 'LTE' for each user
+        delay_diffs = df_pivot['wi-fi'].subtract(df_pivot['lte'], axis=0)
+        abs_delay_diffs = delay_diffs.abs()
+        # print(abs_delay_diffs)
+        local_reward = 1/abs_delay_diffs*100
+        reward = abs_delay_diffs.mean()
+        return local_reward
+
+
+    #I don't like this function...
+    def delay_to_scale(self, data):
+        """
+        Rescale the action from [low, high] to [-1, 1]
+        (no need for symmetric action space)
+
+        :param action_space: (gym.spaces.box.Box)
+        :param action: (np.ndarray)
+        :return: (np.ndarray)
+        """
+        # low, high = 0,220
+        # return -10*(2.0 * ((data - low) / (high - low)) - 1.0)
+        low, high = MIN_DELAY_MS, MAX_DELAY_MS
+        norm = np.clip(data, low, high)
+
+        norm = ((data - low) / (high - low)) * -20 + 10
+        # norm = (-1*np.log(norm) + 3) * 2.5
+        #norm = np.clip(norm, -10, 20)
+
+        return norm

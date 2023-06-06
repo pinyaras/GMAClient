@@ -35,7 +35,7 @@
           "measurement_guard_interval_ms": 0,
           "respond_action_after_measurement": true
         },
-        "WIFI": {
+        "Wi-Fi": {
           "ap_share_same_band": false,
           "measurement_interval_ms": 100,
           "measurement_guard_interval_ms": 0

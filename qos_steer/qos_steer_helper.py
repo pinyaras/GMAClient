@@ -5,10 +5,10 @@ import numpy as np
 
 
 class qos_steer_helper(use_case_base_helper):
-    def __init__(self):
+    def __init__(self, wandb):
         self.use_case = "qos_steer"
-        self.config_json = None
         self.action_max_value = 1
+        super().__init__(wandb)
 
     def get_action_space (self):
         if (self.use_case == self.config_json['gmasim_config']['use_case']):
@@ -21,6 +21,10 @@ class qos_steer_helper(use_case_base_helper):
         else:
             sys.exit("[ERROR] wrong use case or RL agent.")
 
+    #consistent with the prepare_observation function.
+    def get_num_of_observation_features(self):
+        return 3
+    
     def prepare_observation(self, df_list):
         
         df_phy_lte_max_rate = df_list[0]
@@ -180,3 +184,75 @@ class qos_steer_helper(use_case_base_helper):
         data["LTE_avg_rate"] = df_cp[:]['value'].mean()
         data["LTE_total"] = df_cp['value'].sum()
         return data
+
+    def get_reward(self, df_list):
+
+        df_load = df_list[2]
+        df_rate = df_list[3]
+        df_qos_rate = df_list[4]
+        df_owd = df_list[5]
+        
+        #Convert dataframe of Txrate state to python dict
+        dict_rate = self.df_to_dict(df_rate, 'rate')
+        dict_rate["sum_rate"] = df_rate[:]["value"].sum()
+
+        df_qos_rate_all = df_qos_rate[df_qos_rate['cid'] == 'All'].reset_index(drop=True)
+        df_qos_rate_wifi = df_qos_rate[df_qos_rate['cid'] == 'Wi-Fi'].reset_index(drop=True)
+        dict_qos_rate_all = self.df_to_dict(df_qos_rate_all, 'qos_rate')
+        dict_qos_rate_all["sum_qos_rate"] = df_qos_rate_all[:]["value"].sum()
+
+        dict_qos_rate_wifi = self.df_to_dict(df_qos_rate_wifi, 'wifi_qos_rate')
+        dict_qos_rate_wifi["sum_wifi_qos_rate"] = df_qos_rate_wifi[:]["value"].sum()
+
+        df_owd_fill = df_owd[df_owd['cid'] == 'All'].reset_index(drop=True)
+
+        df_owd_fill = df_owd_fill[["user", "value"]].copy()
+        df_owd_fill["value"] = df_owd_fill["value"].replace(0, 1)#change 0 delay to 1 for plotting
+        df_owd_fill.index = df_owd_fill['user']
+        df_owd_fill = df_owd_fill.reindex(np.arange(0, self.config_json['gmasim_config']['num_users'])).fillna(df_owd_fill["value"].max())#fill empty measurement with max delay
+        df_owd_fill = df_owd_fill[["value"]].reset_index()
+        dict_owd = self.df_to_dict(df_owd_fill, 'owd')
+
+        df_dict = self.df_to_dict(df_load, 'tx_rate')
+        df_dict["sum_tx_rate"] = df_load[:]["value"].sum()
+
+        # _ = self.calculate_delay_diff(df_owd)
+
+        avg_delay = df_owd["value"].mean()
+        max_delay = df_owd["value"].max()
+
+        # Pivot the DataFrame to extract "Wi-Fi" and "LTE" values
+        # df_pivot = df_owd.pivot_table(index="user", columns="cid", values="value", aggfunc="first")[["Wi-Fi", "LTE"]]
+
+        # Rename the columns to "wi-fi" and "lte"
+        # df_pivot.columns = ["wi-fi", "lte"]
+
+        # Sort the index in ascending order
+        # df_pivot.sort_index(inplace=True)
+
+        #check reward type, TODO: add reward combination of delay and throughput from network util function
+        reward = 0
+        if self.config_json["rl_agent_config"]["reward_type"] == "wifi_qos_user_num":
+            reward = self.calculate_wifi_qos_user_num(df_qos_rate_wifi[:]["value"])
+        else:
+            sys.exit("[ERROR] reward type not supported yet")
+
+        #self.wandb.log(df_dict)
+
+        #self.wandb.log({"step": self.current_step, "reward": reward, "avg_delay": avg_delay, "max_delay": max_delay})
+        if not self.wandb_log_info:
+            self.wandb_log_info = df_dict
+        else:
+            self.wandb_log_info.update(df_dict)
+        self.wandb_log_info.update(dict_rate)
+        self.wandb_log_info.update(dict_qos_rate_all)
+        self.wandb_log_info.update(dict_qos_rate_wifi)
+        self.wandb_log_info.update(dict_owd)
+        self.wandb_log_info.update({"reward": reward, "avg_delay": avg_delay, "max_delay": max_delay})
+
+        return reward
+
+    def calculate_wifi_qos_user_num(self, qos_rate):
+        #print(qos_rate)
+        reward = np.sum(qos_rate>0.1) #we assume the min qos rate is 0.1 mbps
+        return reward

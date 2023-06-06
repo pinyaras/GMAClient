@@ -89,7 +89,7 @@ python3 main_rl.py --use_case=[USE_CASE]
 
 - Excuting the 📜 main_rl.py file will start a new simulation. The use case must be selected using the `--use_case` command. The 📜common_config.json is used in all use cases. Depends on the selected use cases, th associated 📜[USE_CASE]_config.json and 📜[USE_CASE]_helper.py will be loaded. The 📜[USE_CASE]_helper.py helps preparing observations, rewards and actions for the selected use case.
 - The 📜 main_rl.py create a GMASim environment (imported from 📜gma_gym.py), which remotely connects to the ns-3 based GMA Simualtor (hosted in vLab machine) using the 📜gmasim_open_api. 📜 main_rl.py also creates a reinforcement learning model (imported from ➡️stable-baselines3) to interact with the GMASim environment. The results are synced to ➡️WanDB database. We provide the following code snippet from the 📜 main_rl.py as an example. After the model is trained using the NetAIGym, it can be easily deployed in any environment.
-- This file strcuture isolates the function and variables associated to each use case. Therefore, a new use case can be added by adding ad new folder with 📜[USE_CASE]_config.json and 📜[USE_CASE]_helper.py files. 
+- This file strcuture isolates the function and variables associated to each use case. Therefore, a new use case can be added by adding ad new [USE_CASE] folder with 📜[USE_CASE]_config.json and 📜[USE_CASE]_helper.py files. 
 
 ```python
 from stable_baselines3 import PPO
@@ -115,8 +115,7 @@ model.learn(total_timesteps=10_000)
   "enable_rl_agent": true,//set to true to enable rl agent, set to false to use GMA's baseline algorithm.
 
   "rl_agent_config":{
-    "agent": "PPO",//supported agents are "PPO", "DDPG", "SAC", "TD3", "A2C", "SingleLink".
-    "link_type": "lte",//"lte" or "wifi", only work if the "agent" is set to "SingleLink"
+    "agent": "PPO",//supported agents are "PPO", "DDPG", "SAC", "TD3", "A2C", "LTE", "Wi-Fi".
     "policy": "MlpPolicy",
     "train": true,//set to true to train model, set to false to test pretrained model.
     "reward_type" : "throughput",//supported reward types are "throughput", "delay", "utility", and "wifi_qos_user_num".
@@ -174,7 +173,7 @@ model.learn(total_timesteps=10_000)
           "measurement_guard_interval_ms": 0, //gap between 2 measurement interval
           "respond_action_after_measurement": true //do not change
         },
-        "WIFI": {
+        "Wi-Fi": {
           "ap_share_same_band": false, //set to true, ap will share the same frequency band.
           "measurement_interval_ms": 100,
           "measurement_guard_interval_ms": 0

@@ -35,17 +35,17 @@ def train(agent, config_json):
 
     #configure the num_steps based on the JSON file
     if (config_json['gmasim_config']['GMA']['measurement_interval_ms'] + config_json['gmasim_config']['GMA']['measurement_guard_interval_ms']
-        == config_json['gmasim_config']['WIFI']['measurement_interval_ms'] + config_json['gmasim_config']['WIFI']['measurement_guard_interval_ms']
+        == config_json['gmasim_config']['Wi-Fi']['measurement_interval_ms'] + config_json['gmasim_config']['Wi-Fi']['measurement_guard_interval_ms']
         == config_json['gmasim_config']['LTE']['measurement_interval_ms'] + config_json['gmasim_config']['LTE']['measurement_guard_interval_ms']):
         num_steps = int(config_json['gmasim_config']['simulation_time_s'] * 1000/config_json['gmasim_config']['GMA']['measurement_interval_ms'])
     else:
         print(config_json['gmasim_config']['GMA']['measurement_interval_ms'])
         print(config_json['gmasim_config']['GMA']['measurement_guard_interval_ms'])
-        print(config_json['gmasim_config']['WIFI']['measurement_interval_ms'])
-        print(config_json['gmasim_config']['WIFI']['measurement_guard_interval_ms'])
+        print(config_json['gmasim_config']['Wi-Fi']['measurement_interval_ms'])
+        print(config_json['gmasim_config']['Wi-Fi']['measurement_guard_interval_ms'])
         print(config_json['gmasim_config']['LTE']['measurement_interval_ms'])
         print(config_json['gmasim_config']['LTE']['measurement_guard_interval_ms'])
-        sys.exit('[Error!] The value of GMA, WIFI, and LTE measurement_interval_ms + measurement_guard_interval_ms should be the same!')
+        sys.exit('[Error!] The value of GMA, Wi-Fi, and LTE measurement_interval_ms + measurement_guard_interval_ms should be the same!')
     
     model = agent.learn(total_timesteps=num_steps,log_interval=LOG_INTERVAL, callback=checkpoint_callback)
     model.save(config_json['rl_agent_config']['agent'] )
@@ -56,17 +56,17 @@ def gma_policy(env, config_json):
 
     #configure the num_steps based on the JSON file
     if (config_json['gmasim_config']['GMA']['measurement_interval_ms'] + config_json['gmasim_config']['GMA']['measurement_guard_interval_ms']
-        == config_json['gmasim_config']['WIFI']['measurement_interval_ms'] + config_json['gmasim_config']['WIFI']['measurement_guard_interval_ms']
+        == config_json['gmasim_config']['Wi-Fi']['measurement_interval_ms'] + config_json['gmasim_config']['Wi-Fi']['measurement_guard_interval_ms']
         == config_json['gmasim_config']['LTE']['measurement_interval_ms'] + config_json['gmasim_config']['LTE']['measurement_guard_interval_ms']):
         num_steps = int(config_json['gmasim_config']['simulation_time_s'] * 1000/config_json['gmasim_config']['GMA']['measurement_interval_ms'])
     else:
         print(config_json['gmasim_config']['GMA']['measurement_interval_ms'])
         print(config_json['gmasim_config']['GMA']['measurement_guard_interval_ms'])
-        print(config_json['gmasim_config']['WIFI']['measurement_interval_ms'])
-        print(config_json['gmasim_config']['WIFI']['measurement_guard_interval_ms'])
+        print(config_json['gmasim_config']['Wi-Fi']['measurement_interval_ms'])
+        print(config_json['gmasim_config']['Wi-Fi']['measurement_guard_interval_ms'])
         print(config_json['gmasim_config']['LTE']['measurement_interval_ms'])
         print(config_json['gmasim_config']['LTE']['measurement_guard_interval_ms'])
-        sys.exit('[Error!] The value of GMA, WIFI, and LTE measurement_interval_ms + measurement_guard_interval_ms should be the same!')
+        sys.exit('[Error!] The value of GMA, Wi-Fi, and LTE measurement_interval_ms + measurement_guard_interval_ms should be the same!')
 
     done = True
     for step in range(num_steps):
@@ -101,16 +101,6 @@ def evaluate(model, env, n_episodes=NUM_OF_EVALUATE_EPISODES):
 def main():
 
     args = arg_parser()
-    if(args.use_case == "nqos_split"):
-        use_case_helper = nqos_split_helper()
-    elif(args.use_case == "qos_steer"):
-        use_case_helper = qos_steer_helper()
-    elif(args.use_case == "network_slicing"):
-        use_case_helper = network_slicing_helper ()
-    else:
-       sys.exit("[" + args.use_case + "] use case is not implemented.")
-
-    print("[" + args.use_case + "] use case selected.")
 
     #load config files
     FILE_PATH = pathlib.Path(__file__).parent
@@ -189,7 +179,8 @@ def main():
         'TD3': TD3,
         'A2C': A2C,
         'GMA': gma_policy,
-        'SingleLink': single_link_policy
+        'LTE': single_link_policy,
+        'Wi-Fi': single_link_policy
     }
 
     #model_map = {
@@ -204,15 +195,26 @@ def main():
     #client_id = list(alg_map.keys()).index(rl_alg) + 1
     client_id = args.client_id
     # Create the environment
+    if(args.use_case == "nqos_split"):
+        use_case_helper = nqos_split_helper(wandb)
+    elif(args.use_case == "qos_steer"):
+        use_case_helper = qos_steer_helper(wandb)
+    elif(args.use_case == "network_slicing"):
+        use_case_helper = network_slicing_helper (wandb)
+    else:
+       sys.exit("[" + args.use_case + "] use case is not implemented.")
+
+    print("[" + args.use_case + "] use case selected.")
+
     use_case_helper.set_config(config_json)
-    env = GmaSimEnv(client_id, use_case_helper, config_json, wandb) # pass id, and configure file
+    env = GmaSimEnv(client_id, use_case_helper, config_json) # pass id, and configure file
 
     if config_json['enable_rl_agent']:
 
         train_flag = config_json['rl_agent_config']['train']
         #link_type = config_json['rl_agent_config']['link_type']
 
-        if rl_alg == "SingleLink":
+        if rl_alg == "LTE" or rl_alg == "Wi-Fi" :
             single_link_policy(env, config_json)
             return
         # Load the model if eval is True
