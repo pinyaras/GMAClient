@@ -230,7 +230,7 @@ class nqos_split_helper(use_case_base_helper):
             missing_users = list(set(lte_list) - set(df_lte_rate['user']))
             if len(missing_users) > 0:
                 missing_rows = pd.DataFrame({'user': missing_users, 'value': 0.1})
-                df_lte_rate = df_lte_rate.append(missing_rows, ignore_index=True)
+                df_lte_rate = pd.concat([df_lte_rate, missing_rows], ignore_index=True)
                 # print("new rate lte",df_lte_rate)
 
         df_wifi_rate['value'] = df_wifi_rate['value'].replace(0, 0.1)
