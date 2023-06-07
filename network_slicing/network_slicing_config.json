@@ -14,9 +14,8 @@
       "ap_locations":[
       ],
       "slice_list":[
-        {"num_users":5,"dedicated_rbg":1,"prioritized_rbg":1,"shared_rbg":1},
-        {"num_users":5,"dedicated_rbg":2,"prioritized_rbg":2,"shared_rbg":2},
-        {"num_users":5,"dedicated_rbg":0,"prioritized_rbg":0,"shared_rbg":50}
+        {"num_users":10,"dedicated_rbg":0,"prioritized_rbg":13,"shared_rbg":25},
+        {"num_users":30,"dedicated_rbg":0,"prioritized_rbg":12,"shared_rbg":25}
       ],
       "user_left_right_speed_m/s": 1,
       "user_location_range":{
@@ -28,8 +27,8 @@
       },
       "app_and_measurement_start_time_ms": 1000,
       "transport_protocol": "udp",
-      "min_udp_rate_per_user_mbps": 10,
-      "max_udp_rate_per_user_mbps": 10,
+      "min_udp_rate_per_user_mbps": 2,
+      "max_udp_rate_per_user_mbps": 2,
       "qos_requirement": {
         "delay_bound_ms": 1000
       },
