@@ -235,7 +235,7 @@ def main():
         
 def arg_parser():
     parser = argparse.ArgumentParser(description='GMAsim Client')
-    parser.add_argument('--use_case', type=str, required=True,
+    parser.add_argument('--use_case', type=str, required=True, choices=['nqos_split', 'qos_steer', 'network_slicing'],
                         help='Select a use case to start GMAsim (nqos_split, qos_steer, network_slicing).')
     parser.add_argument('--client_id', type=int, required=False, default=0,
                         help='Select client id to start simulation).')

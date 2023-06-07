@@ -3,6 +3,15 @@ import sys
 from gym import spaces
 import numpy as np
 
+def get_rbg_size (bandwidth):
+    # PF type 0 allocation RBG
+    PfType0AllocationRbg = [10,26,63,110]      # see table 7.1.6.1-1 of 36.213
+
+    for i in range(len(PfType0AllocationRbg)):
+        if (bandwidth < PfType0AllocationRbg[i]):
+            return (i + 1)
+    return (-1)
+
 class network_slicing_helper(use_case_base_helper):
     def __init__(self, wandb):
         self.use_case = "network_slicing"
@@ -22,7 +31,48 @@ class network_slicing_helper(use_case_base_helper):
 
         df_phy_lte_max_rate = df_list[0]
         df_phy_wifi_max_rate = df_list[1]
+        df_load = df_list[2]
         df_rate = df_list[3]
+        df_phy_lte_slice_id = df_list[8]
+
+        #print (df_phy_lte_slice_id)
+        #print (df_rate)
+        user_to_slice_id = np.zeros(len(df_phy_lte_slice_id))
+        df_phy_lte_slice_id = df_phy_lte_slice_id.reset_index()  # make sure indexes pair with number of rows
+        for index, row in df_phy_lte_slice_id.iterrows():
+            user_to_slice_id[row['user']] = int(row['value'])
+        #print (user_to_slice_id)
+
+        df_load['slice_id']=user_to_slice_id[df_load['user']]
+        df_load['sum']= df_load.groupby(['slice_id'])['value'].transform('sum')
+
+        df_slice_load = df_load.drop_duplicates(subset=['slice_id'])
+        df_slice_load = df_slice_load.drop(columns=['user'])
+        df_slice_load = df_slice_load.drop(columns=['value'])
+
+        #print (df_load)
+        print (df_slice_load)
+
+        df_phy_lte_max_rate['slice_id']=user_to_slice_id[df_phy_lte_max_rate['user']]
+        df_phy_lte_max_rate['mean']= df_phy_lte_max_rate.groupby(['slice_id'])['value'].transform('mean')
+
+        df_slice_lte_max_rate = df_phy_lte_max_rate.drop_duplicates(subset=['slice_id'])
+        df_slice_lte_max_rate = df_slice_lte_max_rate.drop(columns=['user'])
+        df_slice_lte_max_rate = df_slice_lte_max_rate.drop(columns=['value'])
+
+        print (df_slice_lte_max_rate)
+        print (df_slice_lte_max_rate)
+
+        df_lte_rate = df_rate[df_rate['cid'] == 'LTE'].reset_index(drop=True) #keep the LTE rate.
+        df_lte_rate['slice_id']=user_to_slice_id[df_lte_rate['user']]
+        df_lte_rate['sum']= df_lte_rate.groupby(['slice_id'])['value'].transform('sum')
+
+        df_lte_slice_rate = df_lte_rate.drop_duplicates(subset=['slice_id'])
+        df_lte_slice_rate = df_lte_slice_rate.drop(columns=['user'])
+        df_lte_slice_rate = df_lte_slice_rate.drop(columns=['value'])
+
+        #print (df_lte_rate)
+        print (df_lte_slice_rate)
 
         #use 3 features
         emptyFeatureArray = np.empty([self.config_json['gmasim_config']['num_users'],], dtype=int)
@@ -76,7 +126,11 @@ class network_slicing_helper(use_case_base_helper):
 
     def prepare_action(self, actions):
 
-        scaled_actions= np.interp(actions, (0, 1), (0, self.config_json['gmasim_config']['LTE']['resource_block_num']))
+        rbg_size = get_rbg_size(self.config_json['gmasim_config']['LTE']['resource_block_num'])
+        rbg_num = self.config_json['gmasim_config']['LTE']['resource_block_num']/rbg_size
+        scaled_actions= np.interp(actions, (0, 1), (0, rbg_num/len(self.config_json['gmasim_config']['slice_list'])))
+        #scaled_actions= np.interp(actions, (0, 1), (0, rbg_num))
+
         # Round the scaled subtracted actions to integers
         rounded_scaled_actions = np.round(scaled_actions).astype(int)
 
@@ -86,7 +140,8 @@ class network_slicing_helper(use_case_base_helper):
         for slice_id in range(len(self.config_json['gmasim_config']['slice_list'])):
             action_list.append({"slice":int(slice_id),"D":int(rounded_scaled_actions[slice_id]),"P":int(0),"S":int(50)})
 
-        # please make sure the sum of the dedicated ("D") and priorititized ("P") resouce block is smaller than the configured resource_block_num.
+        # the unit of the action is resource block group number, not resource block!!!
+        # please make sure the sum of the dedicated ("D") and priorititized ("P") resouce block group # is smaller than total resource block group number.
         return action_list
 
     def get_reward(self, df_list):
