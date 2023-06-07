@@ -34,45 +34,8 @@ class network_slicing_helper(use_case_base_helper):
         df_load = df_list[2]
         df_rate = df_list[3]
         df_phy_lte_slice_id = df_list[8]
-
-        #print (df_phy_lte_slice_id)
-        #print (df_rate)
-        user_to_slice_id = np.zeros(len(df_phy_lte_slice_id))
-        df_phy_lte_slice_id = df_phy_lte_slice_id.reset_index()  # make sure indexes pair with number of rows
-        for index, row in df_phy_lte_slice_id.iterrows():
-            user_to_slice_id[row['user']] = int(row['value'])
-        #print (user_to_slice_id)
-
-        df_load['slice_id']=user_to_slice_id[df_load['user']]
-        df_load['sum']= df_load.groupby(['slice_id'])['value'].transform('sum')
-
-        df_slice_load = df_load.drop_duplicates(subset=['slice_id'])
-        df_slice_load = df_slice_load.drop(columns=['user'])
-        df_slice_load = df_slice_load.drop(columns=['value'])
-
-        #print (df_load)
-        print (df_slice_load)
-
-        df_phy_lte_max_rate['slice_id']=user_to_slice_id[df_phy_lte_max_rate['user']]
-        df_phy_lte_max_rate['mean']= df_phy_lte_max_rate.groupby(['slice_id'])['value'].transform('mean')
-
-        df_slice_lte_max_rate = df_phy_lte_max_rate.drop_duplicates(subset=['slice_id'])
-        df_slice_lte_max_rate = df_slice_lte_max_rate.drop(columns=['user'])
-        df_slice_lte_max_rate = df_slice_lte_max_rate.drop(columns=['value'])
-
-        print (df_slice_lte_max_rate)
-        print (df_slice_lte_max_rate)
-
-        df_lte_rate = df_rate[df_rate['cid'] == 'LTE'].reset_index(drop=True) #keep the LTE rate.
-        df_lte_rate['slice_id']=user_to_slice_id[df_lte_rate['user']]
-        df_lte_rate['sum']= df_lte_rate.groupby(['slice_id'])['value'].transform('sum')
-
-        df_lte_slice_rate = df_lte_rate.drop_duplicates(subset=['slice_id'])
-        df_lte_slice_rate = df_lte_slice_rate.drop(columns=['user'])
-        df_lte_slice_rate = df_lte_slice_rate.drop(columns=['value'])
-
-        #print (df_lte_rate)
-        print (df_lte_slice_rate)
+        df_phy_lte_rb_usage = df_list[9]
+        df_delay_violation = df_list[10]
 
         #use 3 features
         emptyFeatureArray = np.empty([self.config_json['gmasim_config']['num_users'],], dtype=int)
@@ -146,22 +109,91 @@ class network_slicing_helper(use_case_base_helper):
 
     def get_reward(self, df_list):
 
+        df_phy_lte_max_rate = df_list[0]
+        df_phy_wifi_max_rate = df_list[1]
         df_load = df_list[2]
         df_rate = df_list[3]
-        df_qos_rate = df_list[4]
         df_owd = df_list[5]
+        df_phy_lte_slice_id = df_list[8]
+        df_phy_lte_rb_usage = df_list[9]
+        df_delay_violation = df_list[10]
+
+        #print (df_phy_lte_slice_id)
+        #print (df_rate)
+        user_to_slice_id = np.zeros(len(df_phy_lte_slice_id))
+        df_phy_lte_slice_id = df_phy_lte_slice_id.reset_index()  # make sure indexes pair with number of rows
+        for index, row in df_phy_lte_slice_id.iterrows():
+            user_to_slice_id[row['user']] = int(row['value'])
+        #print (user_to_slice_id)
+
+        df_load['slice_id']=user_to_slice_id[df_load['user']]
+        df_load['slice_value']= df_load.groupby(['slice_id'])['value'].transform('sum')
+
+        df_slice_load = df_load.drop_duplicates(subset=['slice_id'])
+        df_slice_load = df_slice_load.drop(columns=['user'])
+        df_slice_load = df_slice_load.drop(columns=['value'])
+
+        #print (df_load)
+        print (df_slice_load)
+
+        df_phy_lte_max_rate['slice_id']=user_to_slice_id[df_phy_lte_max_rate['user']]
+        df_phy_lte_max_rate['slice_value']= df_phy_lte_max_rate.groupby(['slice_id'])['value'].transform('mean')
+
+        df_slice_lte_max_rate = df_phy_lte_max_rate.drop_duplicates(subset=['slice_id'])
+        df_slice_lte_max_rate = df_slice_lte_max_rate.drop(columns=['user'])
+        df_slice_lte_max_rate = df_slice_lte_max_rate.drop(columns=['value'])
+
+        #print (df_phy_lte_max_rate)
+        print (df_slice_lte_max_rate)
+
+        df_lte_rate = df_rate[df_rate['cid'] == 'LTE'].reset_index(drop=True) #keep the LTE rate.
+        df_lte_rate['slice_id']=user_to_slice_id[df_lte_rate['user']]
+        df_lte_rate['slice_value']= df_lte_rate.groupby(['slice_id'])['value'].transform('sum')
+
+        df_lte_slice_rate = df_lte_rate.drop_duplicates(subset=['slice_id'])
+        df_lte_slice_rate = df_lte_slice_rate.drop(columns=['user'])
+        df_lte_slice_rate = df_lte_slice_rate.drop(columns=['value'])
+
+        #print (df_lte_rate)
+        print (df_lte_slice_rate)
+
+        df_phy_lte_rb_usage['slice_id']=user_to_slice_id[df_phy_lte_rb_usage['user']]
+        df_phy_lte_rb_usage['slice_value']= df_phy_lte_rb_usage.groupby(['slice_id'])['value'].transform('sum')
+
+        df_slice_lte_rb_usage = df_phy_lte_rb_usage.drop_duplicates(subset=['slice_id'])
+        df_slice_lte_rb_usage = df_slice_lte_rb_usage.drop(columns=['user'])
+        df_slice_lte_rb_usage = df_slice_lte_rb_usage.drop(columns=['value'])
+
+        #print (df_phy_lte_rb_usage)
+        print (df_slice_lte_rb_usage)
+
+        df_delay_violation['slice_id']=user_to_slice_id[df_delay_violation['user']]
+        df_delay_violation['slice_value']= df_delay_violation.groupby(['slice_id'])['value'].transform('mean')
+
+        df_slice_delay_violation = df_delay_violation.drop_duplicates(subset=['slice_id'])
+        df_slice_delay_violation = df_slice_delay_violation.drop(columns=['user'])
+        df_slice_delay_violation = df_slice_delay_violation.drop(columns=['value'])
+
+        #print (df_delay_violation)
+        print (df_slice_delay_violation)
         
         #Convert dataframe of Txrate state to python dict
-        dict_rate = self.df_to_dict(df_rate, 'rate')
-        dict_rate["sum_rate"] = df_rate[:]["value"].sum()
 
-        df_qos_rate_all = df_qos_rate[df_qos_rate['cid'] == 'All'].reset_index(drop=True)
-        df_qos_rate_wifi = df_qos_rate[df_qos_rate['cid'] == 'Wi-Fi'].reset_index(drop=True)
-        dict_qos_rate_all = self.df_to_dict(df_qos_rate_all, 'qos_rate')
-        dict_qos_rate_all["sum_qos_rate"] = df_qos_rate_all[:]["value"].sum()
+        dict_slice_load = self.slice_df_to_dict(df_slice_load, 'tx_rate')
+        #print(dict_slice_load)
 
-        dict_qos_rate_wifi = self.df_to_dict(df_qos_rate_wifi, 'wifi_qos_rate')
-        dict_qos_rate_wifi["sum_wifi_qos_rate"] = df_qos_rate_wifi[:]["value"].sum()
+        dict_slice_lte_max_rate = self.slice_df_to_dict(df_slice_lte_max_rate, 'lte_max_rate')
+        #print(dict_slice_lte_max_rate)
+
+        dict_lte_slice_rate = self.slice_df_to_dict(df_lte_slice_rate, 'rate')
+        dict_lte_slice_rate["sum_rate"] = df_lte_slice_rate[:]["slice_value"].sum()
+        #print(dict_lte_slice_rate)
+
+        dict_slice_delay_violation = self.slice_df_to_dict(df_slice_delay_violation, 'delay_violation_per')
+        #print(dict_slice_delay_violation)
+
+        dict_slice_lte_rb_usage = self.slice_df_to_dict(df_slice_lte_rb_usage, 'rb_usage_per')
+        #print(dict_slice_lte_rb_usage)
 
         df_owd_fill = df_owd[df_owd['cid'] == 'All'].reset_index(drop=True)
 
@@ -172,8 +204,6 @@ class network_slicing_helper(use_case_base_helper):
         df_owd_fill = df_owd_fill[["value"]].reset_index()
         dict_owd = self.df_to_dict(df_owd_fill, 'owd')
 
-        df_dict = self.df_to_dict(df_load, 'tx_rate')
-        df_dict["sum_tx_rate"] = df_load[:]["value"].sum()
 
         # _ = self.calculate_delay_diff(df_owd)
 
@@ -193,17 +223,25 @@ class network_slicing_helper(use_case_base_helper):
         reward = 0
         print("[ERROR] reward type not supported yet")
 
-        #self.wandb.log(df_dict)
 
-        #self.wandb.log({"step": self.current_step, "reward": reward, "avg_delay": avg_delay, "max_delay": max_delay})
         if not self.wandb_log_info:
-            self.wandb_log_info = df_dict
+            self.wandb_log_info = dict_slice_load
         else:
-            self.wandb_log_info.update(df_dict)
-        self.wandb_log_info.update(dict_rate)
-        self.wandb_log_info.update(dict_qos_rate_all)
-        self.wandb_log_info.update(dict_qos_rate_wifi)
+            self.wandb_log_info.update(dict_slice_load)
         self.wandb_log_info.update(dict_owd)
+        self.wandb_log_info.update(dict_slice_lte_max_rate)
+        self.wandb_log_info.update(dict_lte_slice_rate)
+        self.wandb_log_info.update(dict_slice_delay_violation)
+        self.wandb_log_info.update(dict_slice_lte_rb_usage)
         self.wandb_log_info.update({"reward": reward, "avg_delay": avg_delay, "max_delay": max_delay})
 
         return reward
+
+    def slice_df_to_dict(self, df, description):
+        df_cp = df.copy()
+        df_cp['slice_id'] = df_cp['slice_id'].map(lambda u: f'slice_{int(u)}_'+description)
+        # Set the index to the 'user' column
+        df_cp = df_cp.set_index('slice_id')
+        # Convert the DataFrame to a dictionary
+        data = df_cp['slice_value'].to_dict()
+        return data

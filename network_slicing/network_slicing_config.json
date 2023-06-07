@@ -26,7 +26,7 @@
         "max_y":10,
         "z":1.5
       },
-      "app_and_measurement_start_time_ms": 100,
+      "app_and_measurement_start_time_ms": 1000,
       "transport_protocol": "udp",
       "min_udp_rate_per_user_mbps": 10,
       "max_udp_rate_per_user_mbps": 10,
