@@ -113,6 +113,7 @@ class network_slicing_helper(use_case_base_helper):
         df_phy_wifi_max_rate = df_list[1]
         df_load = df_list[2]
         df_rate = df_list[3]
+        df_qos_rate = df_list[4]
         df_owd = df_list[5]
         df_phy_lte_slice_id = df_list[8]
         df_phy_lte_rb_usage = df_list[9]
@@ -157,6 +158,17 @@ class network_slicing_helper(use_case_base_helper):
         #print (df_lte_rate)
         print (df_lte_slice_rate)
 
+        df_lte_qos_rate = df_qos_rate[df_qos_rate['cid'] == 'LTE'].reset_index(drop=True) #keep the LTE rate.
+        df_lte_qos_rate['slice_id']=user_to_slice_id[df_lte_qos_rate['user']]
+        df_lte_qos_rate['slice_value']= df_lte_qos_rate.groupby(['slice_id'])['value'].transform('sum')
+
+        df_lte_qos_slice_rate = df_lte_qos_rate.drop_duplicates(subset=['slice_id'])
+        df_lte_qos_slice_rate = df_lte_qos_slice_rate.drop(columns=['user'])
+        df_lte_qos_slice_rate = df_lte_qos_slice_rate.drop(columns=['value'])
+
+        #print (df_lte_qos_rate)
+        print (df_lte_qos_slice_rate)
+
         df_phy_lte_rb_usage['slice_id']=user_to_slice_id[df_phy_lte_rb_usage['user']]
         df_phy_lte_rb_usage['slice_value']= df_phy_lte_rb_usage.groupby(['slice_id'])['value'].transform('sum')
 
@@ -188,6 +200,10 @@ class network_slicing_helper(use_case_base_helper):
         dict_lte_slice_rate = self.slice_df_to_dict(df_lte_slice_rate, 'rate')
         dict_lte_slice_rate["sum_rate"] = df_lte_slice_rate[:]["slice_value"].sum()
         #print(dict_lte_slice_rate)
+
+        dict_lte_qos_slice_rate = self.slice_df_to_dict(df_lte_qos_slice_rate, 'qos_rate')
+        dict_lte_qos_slice_rate["sum_rate"] = df_lte_qos_slice_rate[:]["slice_value"].sum()
+        #print(dict_lte_qos_slice_rate)
 
         dict_slice_delay_violation = self.slice_df_to_dict(df_slice_delay_violation, 'delay_violation_per')
         #print(dict_slice_delay_violation)
@@ -231,8 +247,11 @@ class network_slicing_helper(use_case_base_helper):
         self.wandb_log_info.update(dict_owd)
         self.wandb_log_info.update(dict_slice_lte_max_rate)
         self.wandb_log_info.update(dict_lte_slice_rate)
+        self.wandb_log_info.update(dict_lte_qos_slice_rate)
+
         self.wandb_log_info.update(dict_slice_delay_violation)
         self.wandb_log_info.update(dict_slice_lte_rb_usage)
+        
         self.wandb_log_info.update({"reward": reward, "avg_delay": avg_delay, "max_delay": max_delay})
 
         return reward

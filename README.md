@@ -1,5 +1,5 @@
-# GMASim Client for Network AI Gym
-GMASim Client is a python-based client for NetAIGym: a ns3-based Data-Driven AI/ML-enabled Multi-Access Network Simulator. In this release, GMASim Client supports two use cases nqos_split and qos_steer and includes the ML algorithms from the [stable-baselines3](https://stable-baselines3.readthedocs.io/en/master/), e.g., PPO, DDPG, SAC, TD3, and A2C.
+# Network AI Gym (NetAIGym) Client 
+NetAIGym Client is a python-based client for NetAIGym: a ns3-based Data-Driven AI/ML-enabled Multi-Access Network Simulator. In this release, NetAIGym Client supports three use cases nqos_split, qos_steer, and network slicing. It also includes the ML algorithms from the [stable-baselines3](https://stable-baselines3.readthedocs.io/en/master/), e.g., PPO, DDPG, SAC, TD3, and A2C.
 
 ## ⌛ Installation:
 - Clone this repo.
@@ -56,16 +56,16 @@ Host mlwins
 
 ## 🚀 Start GMA Algorithm Client:
 
-- Update the common configuration file [common_config.json](common_config.json). Go to the [⚙️ Configurable File Format](#⚙️-configurable-file-format) Section for more details.
+- Update the common configuration file [common_config.json](common_config.json). Go to the ⚙️ Configurable File Format Section for more details.
 
-- Update the use case depend configuration file [qos_steer_config.json](qos_steer_config.json) or [nqos_split_config.json](nqos_split_config.json)
+- Update the use case depend configuration file [qos_steer_config.json](qos_steer/qos_steer_config.json) or [nqos_split_config.json](nqos_split/nqos_split_config.json) or [network_slicint.json](network_slicing/network_slicing_config.json)
 
 
 - Start the client using the following command, and visualize the output in WanDB website.
 ```
 python3 main_rl.py --use_case=[USE_CASE]
 ```
-- where [USE_CASE] includes 3 options: `nqso_split`, `qos_steer` and `network_slicing`. If the python program stops after sending out the start request as shown in the following, check if the port fowarding is broken.
+- where [USE_CASE] has 3 options: `nqso_split`, `qos_steer` and `network_slicing`. If the python program stops after sending out the start request as shown in the following, check if the port fowarding is broken.
 ```
 [qos_steer] use case selected.
 [30] Number of users selected.
@@ -78,13 +78,13 @@ python3 main_rl.py --use_case=[USE_CASE]
 
 ```
 📦GMASim Client
-┗ 📜main_rl.py (➡️stable-baselines3, ➡️WanDB)
-  ┣ 📜common_config.json
-  ┣ 📜gma_gym.py
-  ┣ 📜gmasim_open_api (➡️GMA-Simulator)
-  ┗ 📂[USE_CASE]
-    ┣ 📜[USE_CASE]_config.json
-    ┗ 📜[USE_CASE]_helper.py
+┣ 📜main_rl.py (➡️stable-baselines3, ➡️WanDB)
+┣ 📜common_config.json
+┣ 📜gma_gym.py
+┣ 📜gmasim_open_api (➡️GMA-Simulator)
+┗ 📂[USE_CASE]
+  ┣ 📜[USE_CASE]_config.json
+  ┗ 📜[USE_CASE]_helper.py
 ```
 
 - Excuting the 📜 main_rl.py file will start a new simulation. The use case must be selected using the `--use_case` command. The 📜common_config.json is used in all use cases. Depends on the selected use cases, th associated 📜[USE_CASE]_config.json and 📜[USE_CASE]_helper.py will be loaded. The 📜[USE_CASE]_helper.py helps preparing observations, rewards and actions for the selected use case.
@@ -111,7 +111,8 @@ model.learn(total_timesteps=10_000)
 ```json
 {
   "algorithm_client_port": 8088,//do not change
-  "algorithm_client_identity": "test_id",//Make sure to change the "algorithm_client_identity" to "[YOUR_EMAIL]". E.g., "menglei.zhangz@intel.com".
+  "algorithm_client_identity": "test",//Make sure to change the "algorithm_client_identity" to your assgined ID.
+  "algorithm_client_password": "test",//Make sure to change the "algorithm_client_identity" to your assgined password.
   "enable_rl_agent": true,//set to true to enable rl agent, set to false to use GMA's baseline algorithm.
 
   "rl_agent_config":{
@@ -123,12 +124,13 @@ model.learn(total_timesteps=10_000)
   }
 }
 ```
-- [qos_steer_config.json](qos_steer_config.json) or [nqos_split_config.json](nqos_split_config.json)
+- [qos_steer_config.json](qos_steer/qos_steer_config.json) or [nqos_split_config.json](nqos_split/nqos_split_config.json) or [network_slicint.json](network_slicing/network_slicing_config.json)
 ```json
 {
+  //never use negative value for any configure vale!!!
   "gmasim_config":{
       "type": "gmasim-start", //do not change
-      "use_case": "nqos_split" or "qos_steer", //do not change
+      "use_case": "nqos_split" or "qos_steer" or "network_slicing", //do not change
       "simulation_time_s": 10,
       "random_run": 2, //change the random seed for this simulation run
       "downlink": true, //set to true to simulate downlink data flow, set to false to simulate uplink data flow.
@@ -186,13 +188,6 @@ model.learn(total_timesteps=10_000)
         }
       },
   "gmasim_action_template":{//do not change
-      "type": "gmasim-action",
-      "end_ts": 0,
-      "downlink": true,
-      "action_list":[
-        {"cid":"Wi-Fi","user":0,"value":1},
-        {"cid":"LTE","user":0,"value":1}
-      ]
   }
 }
 ```

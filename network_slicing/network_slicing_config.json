@@ -30,7 +30,7 @@
       "min_udp_rate_per_user_mbps": 2,
       "max_udp_rate_per_user_mbps": 2,
       "qos_requirement": {
-        "delay_bound_ms": 1000
+        "delay_bound_ms": 100
       },
       "GMA": {
           "downlink_mode": "auto",
@@ -45,7 +45,6 @@
         "measurement_guard_interval_ms": 0
       },
       "LTE": {
-        "qos_aware_scheduler": true,
         "resource_block_num": 100,
         "measurement_interval_ms": 1000,
         "measurement_guard_interval_ms": 0
