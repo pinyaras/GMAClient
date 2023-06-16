@@ -1,4 +1,10 @@
-from use_case_base_helper import use_case_base_helper
+try:
+    # Try to import from the same directory
+    from use_case_base_helper import use_case_base_helper
+except ImportError:
+    #Handle when import from custom RL
+    from GMAClient.use_case_base_helper import use_case_base_helper
+
 import sys
 from gym import spaces
 import numpy as np
@@ -73,6 +79,7 @@ class nqos_split_helper(use_case_base_helper):
                                             shape=(int(self.config_json['gmasim_config']['num_users']),), dtype=np.float32)
         #This is for CleanRL custom
         elif (self.use_case == self.config_json['gmasim_config']['use_case'] and self.config_json['rl_agent_config']['agent'] == "custom"):
+            #Define your own action space to match with output of actor network
             return spaces.Box(low=0, high=1,
                                             shape=(1,), dtype=np.float32)
         else:

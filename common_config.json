@@ -1,13 +1,13 @@
 {
   "algorithm_client_port": 8088,
   "algorithm_client_identity": "test_id",
-  "enable_rl_agent": true,
+  "enable_rl_agent": false,
 
   "rl_agent_config":{
-    "agent": "PPO",
+    "agent": "GMA",
     "policy": "MlpPolicy",
     "train": true,
-    "reward_type" : "utility",
+    "reward_type" : "delay",
     "input": "matrix"
   }
 }
