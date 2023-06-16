@@ -111,7 +111,8 @@ model.learn(total_timesteps=10_000)
 ```json
 {
   "algorithm_client_port": 8088,//do not change
-  "algorithm_client_identity": "test_id",//Make sure to change the "algorithm_client_identity" to "[YOUR_EMAIL]". E.g., "menglei.zhangz@intel.com".
+  "algorithm_client_identity": "test",//Make sure to change the "algorithm_client_identity" to your assgined ID.
+  "algorithm_client_password": "test",//Make sure to change the "algorithm_client_identity" to your assgined password.
   "enable_rl_agent": true,//set to true to enable rl agent, set to false to use GMA's baseline algorithm.
 
   "rl_agent_config":{
