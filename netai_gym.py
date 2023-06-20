@@ -10,9 +10,9 @@ import json
 import sys
 try:
     # Try to import from the same directory
-    from netai_gym_open_api import api_client as netai_api_client
+    from netai_gym_open_api import api_client as netai_gym_api_client
 except ImportError:
-    from .netai_gym_open_api import api_client as netai_api_client
+    from .netai_gym_open_api import api_client as netai_gym_api_client
 
 np.set_printoptions(precision=3)
 
@@ -45,7 +45,7 @@ class NetAIEnv(gym.Env):
             sys.exit("[" + config_json["rl_agent_config"]['input']  + "] input type not valid.")
 
         self.normalize_obs = RunningMeanStd(shape=self.observation_space.shape)
-        self.netai_api_client = netai_api_client(id, config_json) #initial netai_api_client
+        self.netai_gym_api_client = netai_gym_api_client(id, config_json) #initial netai_gym_api_client
         #self.max_counter = int(config_json['gmasim_config']['simulation_time_s'] * 1000/config_json['gmasim_config']['GMA']['measurement_interval_ms'])# Already checked the interval for Wi-Fi and LTE in the main file
 
         #self.link_type = config_json['rl_agent_config']['link_type'] 
@@ -53,7 +53,7 @@ class NetAIEnv(gym.Env):
         self.max_steps = STEPS_PER_EPISODE
         self.current_ep = 0
         self.first_episode = True
-        self.netai_api_client.connect()
+        self.netai_gym_api_client.connect()
 
         self.last_action_list = []
 
@@ -62,9 +62,9 @@ class NetAIEnv(gym.Env):
         self.current_step = 0
         # connect to the netai server and and receive the first measurement
         if not self.first_episode:
-            self.netai_api_client.send(self.last_action_list) #send action to netai server
+            self.netai_gym_api_client.send(self.last_action_list) #send action to netai server
 
-        ok_flag, df_list = self.netai_api_client.recv()#first measurement
+        ok_flag, df_list = self.netai_gym_api_client.recv()#first measurement
         df_phy_lte_max_rate = df_list[0]
         df_phy_wifi_max_rate = df_list[1]
         df_load = df_list[2]
@@ -98,16 +98,16 @@ class NetAIEnv(gym.Env):
 
         if not self.enable_rl_agent or actions.size == 0:
             #empty action
-            self.netai_api_client.send([]) #send empty action to netai server
+            self.netai_gym_api_client.send([]) #send empty action to netai server
             return
         if self.rl_alg == "Wi-Fi" or  self.rl_alg == "LTE":
-            self.netai_api_client.send(actions) #send empty action to netai server
+            self.netai_gym_api_client.send(actions) #send empty action to netai server
             return           
 
         action_list = self.use_case_helper.prepare_action(actions)
 
         self.last_action_list = action_list
-        self.netai_api_client.send(action_list) #send action to netai server
+        self.netai_gym_api_client.send(action_list) #send action to netai server
 
 
 
@@ -122,12 +122,12 @@ class NetAIEnv(gym.Env):
 
     def get_obs_reward(self):
         #receive measurement from netai server
-        ok_flag, df_list = self.netai_api_client.recv()
+        ok_flag, df_list = self.netai_gym_api_client.recv()
 
         #while self.enable_rl_agent and not ok_flag:
         #    print("[WARNING], some users may not have a valid measurement, for qos_steering case, the qos_test is not finished before a measurement return...")
-        #    self.netai_api_client.send(self.last_action_list) #send the same action to netai server
-        #    ok_flag, df_list = self.netai_api_client.recv() 
+        #    self.netai_gym_api_client.send(self.last_action_list) #send the same action to netai server
+        #    ok_flag, df_list = self.netai_gym_api_client.recv() 
         if self.enable_rl_agent and not ok_flag:
             print("[WARNING], some users may not have a valid measurement, for qos_steering case, the qos_test is not finished before a measurement return...")
         df_phy_lte_max_rate = df_list[0]

@@ -5,7 +5,7 @@
   "enable_rl_agent": true,
 
   "rl_agent_config":{
-    "agent": "GMA",
+    "agent": "PPO",
     "policy": "MlpPolicy",
     "train": true,
     "reward_type" : "delay",
