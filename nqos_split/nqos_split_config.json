@@ -2,7 +2,7 @@
   "gmasim_config":{
       "type": "gmasim-start",
       "use_case": "nqos_split",
-      "simulation_time_s": 4,
+      "simulation_time_s": 400,
       "random_run": 2,
       "downlink": true,
       "max_wait_time_for_action_ms": -1,
@@ -25,7 +25,7 @@
         "z":1.5
       },
       "app_and_measurement_start_time_ms": 1000,
-      "transport_protocol": "tcp",
+      "transport_protocol": "udp",
       "min_udp_rate_per_user_mbps": 6,
       "max_udp_rate_per_user_mbps": 6,
       "GMA": {
@@ -41,7 +41,7 @@
           "measurement_guard_interval_ms": 0
         },
         "LTE": {
-          "resource_block_num": 25,
+          "resource_block_num": 50,
           "measurement_interval_ms": 100,
           "measurement_guard_interval_ms": 0
         }

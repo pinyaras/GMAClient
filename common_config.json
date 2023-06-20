@@ -5,10 +5,10 @@
   "enable_rl_agent": true,
 
   "rl_agent_config":{
-    "agent": "PPO",
+    "agent": "GMA",
     "policy": "MlpPolicy",
     "train": true,
-    "reward_type" : "utility",
+    "reward_type" : "delay",
     "input": "matrix"
   }
 }
