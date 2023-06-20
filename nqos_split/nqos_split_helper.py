@@ -397,7 +397,7 @@ class nqos_split_helper(use_case_base_helper):
         data["WiFI_total"] = df_cp['value'].sum()
         return data
 
-    def get_reward(self, df_list):
+    def prepare_reward(self, df_list):
 
         df_load = df_list[2]
         df_rate = df_list[3]

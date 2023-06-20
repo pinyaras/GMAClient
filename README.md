@@ -1,21 +1,21 @@
-# Network AI Gym (NetAIGym) Client 
-NetAIGym Client is a python-based client for NetAIGym: a ns3-based Data-Driven AI/ML-enabled Multi-Access Network Simulator. In this release, NetAIGym Client supports three use cases nqos_split, qos_steer, and network slicing. It also includes the ML algorithms from the [stable-baselines3](https://stable-baselines3.readthedocs.io/en/master/), e.g., PPO, DDPG, SAC, TD3, and A2C.
+# NetAI Client 
+NetAI Client is a python-based client for NetAI Gym: a ns3-based Data-Driven AI/ML-enabled Multi-Access Network Simulator. In this release, NetAI Client supports three use cases nqos_split, qos_steer, and network slicing. It also includes the ML algorithms from the [stable-baselines3](https://stable-baselines3.readthedocs.io/en/master/), e.g., PPO, DDPG, SAC, TD3, and A2C.
 
 ## ⌛ Installation:
 - Clone this repo.
 ```
 git clone https://github.com/pinyaras/GMAClient.git
 ```
-- Download the [gmasim_open_api](https://github.com/IntelLabs/gma/blob/master/GMAsim/gmasim_open_api.py) library.
+- Download the [netai_gym_open_api](https://github.com/IntelLabs/gma/blob/master/netai_gym/netai_gym_open_api.py) library.
 
 ```
 cd GMAClient
-wget https://raw.githubusercontent.com/IntelLabs/gma/master/GMAsim/gmasim_open_api.py
+wget https://raw.githubusercontent.com/IntelLabs/gma/master/netai_gym/netai_gym_open_api.py
 ```
 - (Optional) Create a new virtual python environment.
 ```
-python3 -m venv gma-db-venv
-source gma-db-venv/bin/activate
+python3 -m venv netai-venv
+source netai-venv/bin/activate
 ```
 - Install Required Libraries.
 ```
@@ -54,7 +54,7 @@ Host mlwins
   LocalForward 8088 localhost:8088
 ```
 
-## 🚀 Start GMA Algorithm Client:
+## 🚀 Start NetAI Algorithm Client:
 
 - Update the common configuration file [common_config.json](common_config.json). Go to the ⚙️ Configurable File Format Section for more details.
 
@@ -70,36 +70,36 @@ python3 main_rl.py --use_case=[USE_CASE]
 [qos_steer] use case selected.
 [30] Number of users selected.
 ...
-[YOUR_ALGORITHM_NAME]-gym-client-GMA-0 started
-[YOUR_ALGORITHM_NAME]-gym-client-GMA-0 Sending GMASim Start Request…
+[YOUR_ALGORITHM_NAME]-0 started
+[YOUR_ALGORITHM_NAME]-0 Sending GMASim Start Request…
 ```
 
 ## 📁 File Structure:
 
 ```
-📦GMASim Client
+📦NetAIClient
 ┣ 📜main_rl.py (➡️stable-baselines3, ➡️WanDB)
 ┣ 📜common_config.json
-┣ 📜gma_gym.py
-┣ 📜gmasim_open_api (➡️GMA-Simulator)
+┣ 📜netai_gym.py
+┣ 📜netai_gym_open_api (➡️netai-simulator)
 ┗ 📂[USE_CASE]
   ┣ 📜[USE_CASE]_config.json
   ┗ 📜[USE_CASE]_helper.py
 ```
 
 - Excuting the 📜 main_rl.py file will start a new simulation. The use case must be selected using the `--use_case` command. The 📜common_config.json is used in all use cases. Depends on the selected use cases, th associated 📜[USE_CASE]_config.json and 📜[USE_CASE]_helper.py will be loaded. The 📜[USE_CASE]_helper.py helps preparing observations, rewards and actions for the selected use case.
-- The 📜 main_rl.py create a GMASim environment (imported from 📜gma_gym.py), which remotely connects to the ns-3 based GMA Simualtor (hosted in vLab machine) using the 📜gmasim_open_api. 📜 main_rl.py also creates a reinforcement learning model (imported from ➡️stable-baselines3) to interact with the GMASim environment. The results are synced to ➡️WanDB database. We provide the following code snippet from the 📜 main_rl.py as an example. After the model is trained using the NetAIGym, it can be easily deployed in any environment.
+- The 📜 main_rl.py create a NetAI Gym environment (imported from 📜neiai_gym.py), which remotely connects to the ns-3 based NetAI Simualtor (hosted in vLab machine) using the 📜netai_gym_open_api. 📜 main_rl.py also creates a reinforcement learning model (imported from ➡️stable-baselines3) to interact with the NetAI Gym environment. The results are synced to ➡️WanDB database. We provide the following code snippet from the 📜 main_rl.py as an example. After the model is trained using the NetAI Gym's environment, it can be easily deployed in any environment.
 - This file strcuture isolates the function and variables associated to each use case. Therefore, a new use case can be added by adding ad new [USE_CASE] folder with 📜[USE_CASE]_config.json and 📜[USE_CASE]_helper.py files. 
 
 ```python
 from stable_baselines3 import PPO
-from gma_gym import GmaSimEnv
+from netai_gym import NetAIEnv
 from nqos_split_helper import use_case_helper
 import wandb
 
 ...
 # training
-env = GmaSimEnv(client_id, use_case_helper, config_json, wandb) # passing id, use case helper, configure file and wanDb as arguments
+env = NetAIEnv(client_id, use_case_helper, config_json, wandb) # passing id, use case helper, configure file and wanDb as arguments
 model = PPO("MlpPolicy", env, verbose=1) # you can change the env to your deployment environment when the model is trained.
 model.learn(total_timesteps=10_000)
 ...
@@ -113,7 +113,7 @@ model.learn(total_timesteps=10_000)
   "algorithm_client_port": 8088,//do not change
   "algorithm_client_identity": "test",//Make sure to change the "algorithm_client_identity" to your assgined ID.
   "algorithm_client_password": "test",//Make sure to change the "algorithm_client_identity" to your assgined password.
-  "enable_rl_agent": true,//set to true to enable rl agent, set to false to use GMA's baseline algorithm.
+  "enable_rl_agent": true,//set to true to enable rl agent, set to false to use system's default algorithm.
 
   "rl_agent_config":{
     "agent": "PPO",//supported agents are "PPO", "DDPG", "SAC", "TD3", "A2C", "LTE", "Wi-Fi".
@@ -134,7 +134,7 @@ model.learn(total_timesteps=10_000)
       "simulation_time_s": 10,
       "random_run": 2, //change the random seed for this simulation run
       "downlink": true, //set to true to simulate downlink data flow, set to false to simulate uplink data flow.
-      "max_wait_time_for_action_ms": -1, //the max time the gmasim worker will wait for an action. set to -1 will cap the wait time to 100 seconds.
+      "max_wait_time_for_action_ms": -1, //the max time the netaisim worker will wait for an action. set to -1 will cap the wait time to 100 seconds.
       "enb_locations":{//x, y and z locations of the base station, we support 1 base station only
         "x":40,
         "y":0,
@@ -194,6 +194,7 @@ model.learn(total_timesteps=10_000)
 
 ## 🚩 TODOs
 
-- TODO 1: Create a Website for NetAIGym including the 3 Scenarios.
-- TODO 2: show two instance (GMA vs DDPG) at the same time, visualize results using WanDB and influxDB.
-- TODO 3: two slice plus demo video for GMAsim.
+- TODO 1: Create a Website for NetAI Gym including the 3 Scenarios.
+- TODO 2: show two instance (System default vs DDPG) at the same time, visualize results using WanDB and influxDB.
+- TODO 3: two slice plus demo video for NetAI Gym.
+- TODO 4: move the main_rl.py ousite the folder...
