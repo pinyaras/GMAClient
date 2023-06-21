@@ -1,7 +1,7 @@
 {
   "algorithm_client_port": 8088,
-  "algorithm_client_identity": "test",
-  "algorithm_client_password": "test",
+  "session_name": "test",
+  "session_id": "test",
   "enable_rl_agent": true,
 
   "rl_agent_config":{

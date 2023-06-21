@@ -161,17 +161,17 @@ def main():
         # save_code=True,  # optional
     )
 
-    if config_json['algorithm_client_identity'] == 'test':
+    if config_json['session_name'] == 'test':
         #username = wandb.api_key.split()[0].split("@")[0]
         username = run.entity
         print(username)
         if username == '':
             print('***[WARNING]*** You are using the default "test" to connect to the server, which may conflict with the simulations launched by other users.')
-            print('***[WARNING]*** Please change the "algorithm_client_identity" attribute in the common_config.json file to your assigned ID. If you do not have one, contact menglei.zhang@intel.com.')
+            print('***[WARNING]*** Please change the "session_name" attribute in the common_config.json file to your assigned session name. If you do not have one, contact menglei.zhang@intel.com.')
         else:
             print('***[WARNING]*** You are using wandb username ['+username+'] as algorithm client id to connect to the server')
-            print('***[WARNING]*** Please change the "algorithm_client_identity" attribute in the common_config.json file to your assigned ID. If you do not have one, contact menglei.zhang@intel.com.')
-            config_json['algorithm_client_identity'] = username
+            print('***[WARNING]*** Please change the "session_name" attribute in the common_config.json file to your assigned session name. If you do not have one, contact menglei.zhang@intel.com.')
+            config_json['session_name'] = username
 
     alg_map = {
         'PPO': PPO,
