@@ -65,11 +65,7 @@ class NetAIEnv(gym.Env):
         if not self.first_episode:
             self.netai_gym_api_client.send(self.last_action_list) #send action to netai server
 
-<<<<<<< HEAD:gma_gym.py
-        ok_flag, terminate_flag, df_list = self.gmasim_client.recv()#first measurement
-=======
         ok_flag, df_list = self.netai_gym_api_client.recv()#first measurement
->>>>>>> b39d339b1482a7ea76a6449fc592f65ef2a4b84d:netai_gym.py
         df_phy_lte_max_rate = df_list[0]
         df_phy_wifi_max_rate = df_list[1]
         df_load = df_list[2]
@@ -126,17 +122,10 @@ class NetAIEnv(gym.Env):
 
 
     def get_obs_reward(self):
-<<<<<<< HEAD:gma_gym.py
-        #receive measurement from GMAsim server
-        ok_flag, terminate_flag, df_list = self.gmasim_client.recv()
-
+        #receive measurement from netai server
+        ok_flag, terminate_flag,  df_list = self.netai_gym_api_client.recv()
         if terminate_flag == True:
             return [], 0, [], [], terminate_flag
-=======
-        #receive measurement from netai server
-        ok_flag, df_list = self.netai_gym_api_client.recv()
->>>>>>> b39d339b1482a7ea76a6449fc592f65ef2a4b84d:netai_gym.py
-
         #while self.enable_rl_agent and not ok_flag:
         #    print("[WARNING], some users may not have a valid measurement, for qos_steering case, the qos_test is not finished before a measurement return...")
         #    self.netai_gym_api_client.send(self.last_action_list) #send the same action to netai server
