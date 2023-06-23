@@ -1,7 +1,7 @@
 {
   "algorithm_client_port": 8088,
-  "session_name": "test",
-  "session_id": "test",
+  "session_name": "uncc",
+  "session_id": "_R=tI8Ofrep52NApathI",
   "enable_rl_agent": true,
   "rl_agent_config":{
     "agent": "custom",
