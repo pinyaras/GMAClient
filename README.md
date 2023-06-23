@@ -1,5 +1,5 @@
 # NetAI Client 
-NetAI Client is a python-based client for NetAI Gym: a ns3-based Data-Driven AI/ML-enabled Multi-Access Network Simulator. In this release, NetAI Client supports three use cases nqos_split, qos_steer, and network slicing. It also includes the ML algorithms from the [stable-baselines3](https://stable-baselines3.readthedocs.io/en/master/), e.g., PPO, DDPG, SAC, TD3, and A2C.
+NetAI Client is a python-based client for NetAI Gym: a ns3-based Data-Driven AI/ML-enabled Multi-Access Network Simulator. In this release, NetAI Client supports three use cases nqos_split, qos_steer, and network slicing. It also includes the SOTA RL algorithms from the [stable-baselines3](https://stable-baselines3.readthedocs.io/en/master/), e.g., PPO, DDPG, SAC, TD3, and A2C.
 
 ## ⌛ Installation:
 - Clone this repo.
