@@ -1,20 +1,10 @@
 {
   "algorithm_client_port": 8088,
-<<<<<<< HEAD
-  "algorithm_client_identity": "uncc",
-  "algorithm_client_password": "_R=tI8Ofrep52NApathI",
-  "enable_rl_agent": true,
-
-  "rl_agent_config":{
-    "agent": "custom",
-=======
   "session_name": "test",
   "session_id": "test",
   "enable_rl_agent": true,
-
   "rl_agent_config":{
-    "agent": "PPO",
->>>>>>> b39d339b1482a7ea76a6449fc592f65ef2a4b84d
+    "agent": "custom",
     "policy": "MlpPolicy",
     "train": true,
     "reward_type" : "delay",

@@ -65,7 +65,7 @@ class NetAIEnv(gym.Env):
         if not self.first_episode:
             self.netai_gym_api_client.send(self.last_action_list) #send action to netai server
 
-        ok_flag, df_list = self.netai_gym_api_client.recv()#first measurement
+        ok_flag, terminal_flag ,df_list = self.netai_gym_api_client.recv()#first measurement
         df_phy_lte_max_rate = df_list[0]
         df_phy_wifi_max_rate = df_list[1]
         df_load = df_list[2]
