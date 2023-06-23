@@ -1,11 +1,11 @@
 {
   "algorithm_client_port": 8088,
-  "algorithm_client_identity": "test",
-  "algorithm_client_password": "test",
+  "algorithm_client_identity": "uncc",
+  "algorithm_client_password": "_R=tI8Ofrep52NApathI",
   "enable_rl_agent": true,
 
   "rl_agent_config":{
-    "agent": "GMA",
+    "agent": "custom",
     "policy": "MlpPolicy",
     "train": true,
     "reward_type" : "delay",

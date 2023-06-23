@@ -57,6 +57,7 @@ class GmaSimEnv(gym.Env):
 
         self.last_action_list = []
 
+        
     def reset(self):
         self.counter = 0
         self.current_step = 0
@@ -64,7 +65,7 @@ class GmaSimEnv(gym.Env):
         if not self.first_episode:
             self.gmasim_client.send(self.last_action_list) #send action to GMAsim server
 
-        ok_flag, df_list = self.gmasim_client.recv()#first measurement
+        ok_flag, terminate_flag, df_list = self.gmasim_client.recv()#first measurement
         df_phy_lte_max_rate = df_list[0]
         df_phy_wifi_max_rate = df_list[1]
         df_load = df_list[2]
@@ -122,7 +123,10 @@ class GmaSimEnv(gym.Env):
 
     def get_obs_reward(self):
         #receive measurement from GMAsim server
-        ok_flag, df_list = self.gmasim_client.recv()
+        ok_flag, terminate_flag, df_list = self.gmasim_client.recv()
+
+        if terminate_flag == True:
+            return [], 0, [], [], terminate_flag
 
         #while self.enable_rl_agent and not ok_flag:
         #    print("[WARNING], some users may not have a valid measurement, for qos_steering case, the qos_test is not finished before a measurement return...")
@@ -156,7 +160,7 @@ class GmaSimEnv(gym.Env):
         #Get reward
         rewards = self.use_case_helper.get_reward(df_list)
         
-        return normalized_obs, rewards, df_owd, observation
+        return normalized_obs, rewards, df_owd, observation, terminate_flag
 
     def step(self, actions):
         '''
@@ -170,7 +174,10 @@ class GmaSimEnv(gym.Env):
         self.send_action(actions)
 
         #2.) Get measurements from gamsim and normalize obs and reward
-        normalized_obs, reward, df_owd, obs = self.get_obs_reward()
+        normalized_obs, reward, df_owd, obs, terminate_flag = self.get_obs_reward()
+        if terminate_flag:
+            return [], 0, True,  {"df_owd": [], "obs" : [], "terminate_flag": terminate_flag}
+
 
         self.use_case_helper.wandb_log()
 
@@ -186,4 +193,4 @@ class GmaSimEnv(gym.Env):
                 self.first_episode = False
 
         #4.) return observation, reward, done, info
-        return normalized_obs.astype(np.float32), reward, done, {"df_owd": df_owd, "obs" : obs}
+        return normalized_obs.astype(np.float32), reward, done,  {"df_owd": df_owd, "obs" : obs, "terminate_flag": terminate_flag}

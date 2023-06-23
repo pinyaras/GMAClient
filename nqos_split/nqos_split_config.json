@@ -2,7 +2,7 @@
   "gmasim_config":{
       "type": "gmasim-start",
       "use_case": "nqos_split",
-      "simulation_time_s": 400,
+      "simulation_time_s": 10,
       "random_run": 2,
       "downlink": true,
       "max_wait_time_for_action_ms": -1,
