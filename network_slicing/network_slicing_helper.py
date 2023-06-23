@@ -107,7 +107,7 @@ class network_slicing_helper(use_case_base_helper):
         # please make sure the sum of the dedicated ("D") and priorititized ("P") resouce block group # is smaller than total resource block group number.
         return action_list
 
-    def get_reward(self, df_list):
+    def prepare_reward(self, df_list):
 
         df_phy_lte_max_rate = df_list[0]
         df_phy_wifi_max_rate = df_list[1]

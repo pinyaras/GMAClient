@@ -5,8 +5,7 @@ import pathlib
 import json
 import sys
 import time
-#Import gmagym environment
-from gma_gym import GmaSimEnv
+from netai_gym import NetAIEnv
 
 from stable_baselines3 import A2C, DDPG, PPO, SAC, TD3
 from stable_baselines3.common.vec_env import VecNormalize
@@ -50,7 +49,7 @@ def train(agent, config_json):
     model = agent.learn(total_timesteps=num_steps,log_interval=LOG_INTERVAL, callback=checkpoint_callback)
     model.save(config_json['rl_agent_config']['agent'] )
 
-def gma_policy(env, config_json):
+def system_default_policy(env, config_json):
 
     num_steps = 0
 
@@ -134,20 +133,21 @@ def main():
         config_json['gmasim_config']['LTE']['resource_block_num'] = args.lte_rb
 
 
-    rl_alg = config_json['rl_agent_config']['agent'] 
 
     if not config_json['enable_rl_agent'] :
-        # rl agent disabled, use the default policy from GMA
-        rl_alg = 'GMA'
+        # rl agent disabled, use the default policy from the system
+        config_json['rl_agent_config']['agent']  = 'system_default'
         config_json['gmasim_config']['GMA']['respond_action_after_measurement'] = False
     else:
         #ml algorithm
         if not config_json['gmasim_config']['GMA']['respond_action_after_measurement']:
             sys.exit('[Error!] RL agent must set "respond_action_after_measurement" to true !')
+    
+    rl_alg = config_json['rl_agent_config']['agent'] 
 
     config = {
         "policy_type": "MlpPolicy",
-        "env_id": "Gmasim",
+        "env_id": "netai-gym",
         "RL_algo" : rl_alg
     }
 
@@ -155,23 +155,23 @@ def main():
         # name=rl_alg + "_" + str(config_json['gmasim_config']['num_users']) + "_LTE_" +  str(config_json['gmasim_config']['LTE']['resource_block_num']),
         #name=rl_alg + "_" + str(config_json['gmasim_config']['num_users']) + "_" +  str(config_json['gmasim_config']['LTE']['resource_block_num']),
         name=rl_alg,
-        project="gmasim-gym",
+        project="netai-gym",
         config=config,
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         # save_code=True,  # optional
     )
 
-    if config_json['algorithm_client_identity'] == 'test':
+    if config_json['session_name'] == 'test':
         #username = wandb.api_key.split()[0].split("@")[0]
         username = run.entity
         print(username)
         if username == '':
             print('***[WARNING]*** You are using the default "test" to connect to the server, which may conflict with the simulations launched by other users.')
-            print('***[WARNING]*** Please change the "algorithm_client_identity" attribute in the common_config.json file to your assigned ID. If you do not have one, contact menglei.zhang@intel.com.')
+            print('***[WARNING]*** Please change the "session_name" attribute in the common_config.json file to your assigned session name. If you do not have one, contact menglei.zhang@intel.com.')
         else:
             print('***[WARNING]*** You are using wandb username ['+username+'] as algorithm client id to connect to the server')
-            print('***[WARNING]*** Please change the "algorithm_client_identity" attribute in the common_config.json file to your assigned ID. If you do not have one, contact menglei.zhang@intel.com.')
-            config_json['algorithm_client_identity'] = username
+            print('***[WARNING]*** Please change the "session_name" attribute in the common_config.json file to your assigned session name. If you do not have one, contact menglei.zhang@intel.com.')
+            config_json['session_name'] = username
 
     alg_map = {
         'PPO': PPO,
@@ -179,7 +179,7 @@ def main():
         'SAC': SAC,
         'TD3': TD3,
         'A2C': A2C,
-        'GMA': gma_policy,
+        'system_default': system_default_policy,
         'LTE': single_link_policy,
         'Wi-Fi': single_link_policy
     }
@@ -208,7 +208,7 @@ def main():
     print("[" + args.use_case + "] use case selected.")
 
     use_case_helper.set_config(config_json)
-    env = GmaSimEnv(client_id, use_case_helper, config_json) # pass id, and configure file
+    env = NetAIEnv(client_id, use_case_helper, config_json) # pass id, and configure file
 
     if config_json['enable_rl_agent']:
 
@@ -231,15 +231,15 @@ def main():
             agent = agent_class(config_json['rl_agent_config']['policy'], env, verbose=1, tensorboard_log=f"runs/{run.id}")
             train(agent, config_json)
     else:
-        #use the GMA algorithm...
+        #use the system_default algorithm...
         agent_class(env, config_json)
         
 def arg_parser():
-    parser = argparse.ArgumentParser(description='GMAsim Client')
+    parser = argparse.ArgumentParser(description='NetAI Client')
     parser.add_argument('--use_case', type=str, required=True, choices=['nqos_split', 'qos_steer', 'network_slicing'],
-                        help='Select a use case to start GMAsim (nqos_split, qos_steer, network_slicing).')
+                        help='Select a use case to start NetAI Client (nqos_split, qos_steer, network_slicing)')
     parser.add_argument('--client_id', type=int, required=False, default=0,
-                        help='Select client id to start simulation).')
+                        help='Select client id to start simulation')
     parser.add_argument('--num_users', type=int, required=False, default=-1,
                         help='Select number of users')
     parser.add_argument('--lte_rb', type=int, required=False, default=-1,

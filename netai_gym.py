@@ -10,9 +10,9 @@ import json
 import sys
 try:
     # Try to import from the same directory
-    from gmasim_open_api import gmasim_client
+    from netai_gym_open_api import api_client as netai_gym_api_client
 except ImportError:
-    from .gmasim_open_api import gmasim_client
+    from .netai_gym_open_api import api_client as netai_gym_api_client
 
 np.set_printoptions(precision=3)
 
@@ -20,7 +20,7 @@ FILE_PATH = pathlib.Path(__file__).parent
 
 STEPS_PER_EPISODE = 100
 
-class GmaSimEnv(gym.Env):
+class NetAIEnv(gym.Env):
     """Custom Environment that follows gym interface."""
 
     def __init__(self, id, use_case_helper, config_json):
@@ -45,7 +45,7 @@ class GmaSimEnv(gym.Env):
             sys.exit("[" + config_json["rl_agent_config"]['input']  + "] input type not valid.")
 
         self.normalize_obs = RunningMeanStd(shape=self.observation_space.shape)
-        self.gmasim_client = gmasim_client(id, config_json) #initial gmasim_client
+        self.netai_gym_api_client = netai_gym_api_client(id, config_json) #initial netai_gym_api_client
         #self.max_counter = int(config_json['gmasim_config']['simulation_time_s'] * 1000/config_json['gmasim_config']['GMA']['measurement_interval_ms'])# Already checked the interval for Wi-Fi and LTE in the main file
 
         #self.link_type = config_json['rl_agent_config']['link_type'] 
@@ -53,7 +53,7 @@ class GmaSimEnv(gym.Env):
         self.max_steps = STEPS_PER_EPISODE
         self.current_ep = 0
         self.first_episode = True
-        self.gmasim_client.connect()
+        self.netai_gym_api_client.connect()
 
         self.last_action_list = []
 
@@ -61,11 +61,15 @@ class GmaSimEnv(gym.Env):
     def reset(self):
         self.counter = 0
         self.current_step = 0
-        # connect to the gmasim server and and receive the first measurement
+        # connect to the netai server and and receive the first measurement
         if not self.first_episode:
-            self.gmasim_client.send(self.last_action_list) #send action to GMAsim server
+            self.netai_gym_api_client.send(self.last_action_list) #send action to netai server
 
+<<<<<<< HEAD:gma_gym.py
         ok_flag, terminate_flag, df_list = self.gmasim_client.recv()#first measurement
+=======
+        ok_flag, df_list = self.netai_gym_api_client.recv()#first measurement
+>>>>>>> b39d339b1482a7ea76a6449fc592f65ef2a4b84d:netai_gym.py
         df_phy_lte_max_rate = df_list[0]
         df_phy_wifi_max_rate = df_list[1]
         df_load = df_list[2]
@@ -99,16 +103,16 @@ class GmaSimEnv(gym.Env):
 
         if not self.enable_rl_agent or actions.size == 0:
             #empty action
-            self.gmasim_client.send([]) #send empty action to GMAsim server
+            self.netai_gym_api_client.send([]) #send empty action to netai server
             return
         if self.rl_alg == "Wi-Fi" or  self.rl_alg == "LTE":
-            self.gmasim_client.send(actions) #send empty action to GMAsim server
+            self.netai_gym_api_client.send(actions) #send empty action to netai server
             return           
 
         action_list = self.use_case_helper.prepare_action(actions)
 
         self.last_action_list = action_list
-        self.gmasim_client.send(action_list) #send action to GMAsim server
+        self.netai_gym_api_client.send(action_list) #send action to netai server
 
 
 
@@ -122,16 +126,21 @@ class GmaSimEnv(gym.Env):
 
 
     def get_obs_reward(self):
+<<<<<<< HEAD:gma_gym.py
         #receive measurement from GMAsim server
         ok_flag, terminate_flag, df_list = self.gmasim_client.recv()
 
         if terminate_flag == True:
             return [], 0, [], [], terminate_flag
+=======
+        #receive measurement from netai server
+        ok_flag, df_list = self.netai_gym_api_client.recv()
+>>>>>>> b39d339b1482a7ea76a6449fc592f65ef2a4b84d:netai_gym.py
 
         #while self.enable_rl_agent and not ok_flag:
         #    print("[WARNING], some users may not have a valid measurement, for qos_steering case, the qos_test is not finished before a measurement return...")
-        #    self.gmasim_client.send(self.last_action_list) #send the same action to GMAsim server
-        #    ok_flag, df_list = self.gmasim_client.recv() 
+        #    self.netai_gym_api_client.send(self.last_action_list) #send the same action to netai server
+        #    ok_flag, df_list = self.netai_gym_api_client.recv() 
         if self.enable_rl_agent and not ok_flag:
             print("[WARNING], some users may not have a valid measurement, for qos_steering case, the qos_test is not finished before a measurement return...")
         df_phy_lte_max_rate = df_list[0]
@@ -158,19 +167,19 @@ class GmaSimEnv(gym.Env):
         normalized_obs = (observation - self.normalize_obs.mean) / np.sqrt(self.normalize_obs.var)
         
         #Get reward
-        rewards = self.use_case_helper.get_reward(df_list)
+        rewards = self.use_case_helper.prepare_reward(df_list)
         
         return normalized_obs, rewards, df_owd, observation, terminate_flag
 
     def step(self, actions):
         '''
-        1.) Get action lists from RL agent and send to gmasim server
+        1.) Get action lists from RL agent and send to netai server
         2.) Get measurements from gamsim and normalize obs and reward
         3.) Check if it is the last step in the episode
         4.) return obs,reward,done,info
         '''
 
-        #1.) Get action lists from RL agent and send to gmasim server
+        #1.) Get action lists from RL agent and send to netai server
         self.send_action(actions)
 
         #2.) Get measurements from gamsim and normalize obs and reward
