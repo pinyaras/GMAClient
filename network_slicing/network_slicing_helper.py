@@ -237,7 +237,7 @@ class network_slicing_helper(use_case_base_helper):
 
         #check reward type, TODO: add reward combination of delay and throughput from network util function
         reward = 0
-        print("[ERROR] reward type not supported yet")
+        print("[WARNING] reward fucntion not defined yet")
 
 
         if not self.wandb_log_info:

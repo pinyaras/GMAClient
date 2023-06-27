@@ -113,15 +113,6 @@ model.learn(total_timesteps=10_000)
   "algorithm_client_port": 8088,//do not change
   "session_name": "test",//Make sure to change the "session_name" to your assgined session name.
   "session_id": "test",//Make sure to change the "session_id" to your assgined keys.
-  "enable_rl_agent": true,//set to true to enable rl agent, set to false to use system's default algorithm.
-
-  "rl_agent_config":{
-    "agent": "PPO",//supported agents are "PPO", "DDPG", "SAC", "TD3", "A2C", "LTE", "Wi-Fi".
-    "policy": "MlpPolicy",
-    "train": true,//set to true to train model, set to false to test pretrained model.
-    "reward_type" : "throughput",//supported reward types are "throughput", "delay", "utility", and "wifi_qos_user_num".
-    "input": "matrix"//set the input type for observations, "flat" or "matrix".
-  }
 }
 ```
 - [qos_steer_config.json](qos_steer/qos_steer_config.json) or [nqos_split_config.json](nqos_split/nqos_split_config.json) or [network_slicint.json](network_slicing/network_slicing_config.json)
@@ -187,6 +178,24 @@ model.learn(total_timesteps=10_000)
           "measurement_guard_interval_ms": 0
         }
       },
+
+  "rl_agent_config":{//see the following for config options 
+    "agent": "PPO",
+    "policy": "MlpPolicy",
+    "train": true,
+    "reward_type" : "delay",
+    "input": "matrix"
+  },
+
+  "rl_agent_config_option_list"://do not change this list, it provides the available inputs for the rl_agent_config
+  {
+    "agent": ["", "PPO", "DDPG"],// set to "" will disable agent, i.e., use the system's default algorithm for offline data collection
+    "policy": ["MlpPolicy"],
+    "train": [true, false],//set to true to train model, set to false to test pretrained model.
+    "reward_type" : ["delay", "throughput"],
+    "input": ["matrix", "flat"]//set the input type for observations
+  },
+
   "gmasim_action_template":{//do not change
   }
 }

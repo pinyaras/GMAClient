@@ -49,6 +49,7 @@ def train(agent, config_json):
     model = agent.learn(total_timesteps=num_steps,log_interval=LOG_INTERVAL, callback=checkpoint_callback)
     model.save(config_json['rl_agent_config']['agent'] )
 
+    #TODD Terminate the RL agent when the simulation ends.
 def system_default_policy(env, config_json):
 
     num_steps = 0
@@ -81,6 +82,8 @@ def system_default_policy(env, config_json):
         # apply the action
         obs, reward, done, info = env.step(action)
 
+        if info['terminate_flag']:
+            break
 
 def evaluate(model, env, n_episodes=NUM_OF_EVALUATE_EPISODES):
     rewards = []
@@ -134,7 +137,7 @@ def main():
 
 
 
-    if not config_json['enable_rl_agent'] :
+    if config_json['rl_agent_config']['agent'] == "" or config_json['rl_agent_config']['agent'] == "system_default":
         # rl agent disabled, use the default policy from the system
         config_json['rl_agent_config']['agent']  = 'system_default'
         config_json['gmasim_config']['GMA']['respond_action_after_measurement'] = False
@@ -210,7 +213,7 @@ def main():
     use_case_helper.set_config(config_json)
     env = NetAIEnv(client_id, use_case_helper, config_json) # pass id, and configure file
 
-    if config_json['enable_rl_agent']:
+    if rl_alg != "system_default":
 
         train_flag = config_json['rl_agent_config']['train']
         #link_type = config_json['rl_agent_config']['link_type']

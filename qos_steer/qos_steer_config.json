@@ -52,6 +52,24 @@
         "measurement_guard_interval_ms": 0
       }
     },
+
+  "rl_agent_config":{
+    "agent": "PPO",
+    "policy": "MlpPolicy",
+    "train": true,
+    "reward_type" : "wifi_qos_user_num",
+    "input": "matrix"
+  },
+
+  "rl_agent_config_option_list":
+  {
+    "agent": ["", "PPO", "DDPG"],
+    "policy": ["MlpPolicy"],
+    "train": [true, false],
+    "reward_type" : ["wifi_qos_user_num"],
+    "input": ["matrix", "flat"]
+  },
+
   "gmasim_action_template":{
       "type": "gmasim-action",
       "end_ts": 0,

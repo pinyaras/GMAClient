@@ -30,7 +30,9 @@ class NetAIEnv(gym.Env):
         self.use_case_helper = use_case_helper
         self.num_users = int(config_json['gmasim_config']['num_users'])
         self.rl_alg = config_json['rl_agent_config']['agent'] 
-        self.enable_rl_agent = config_json['enable_rl_agent'] 
+        self.enable_rl_agent = True
+        if config_json['rl_agent_config']['agent']=="system_default":
+            self.enable_rl_agent = False
         self.action_space = use_case_helper.get_action_space()
 
         num_features = use_case_helper.get_num_of_observation_features()
@@ -53,7 +55,6 @@ class NetAIEnv(gym.Env):
         self.max_steps = STEPS_PER_EPISODE
         self.current_ep = 0
         self.first_episode = True
-        self.netai_gym_api_client.connect()
 
         self.last_action_list = []
 
@@ -61,8 +62,12 @@ class NetAIEnv(gym.Env):
     def reset(self):
         self.counter = 0
         self.current_step = 0
-        # connect to the netai server and and receive the first measurement
-        if not self.first_episode:
+        # if a new simulation starts (first episode) in the reset function, we need to connect to server
+        # else a new episode of the same simulation.
+            # do not need to connect, send action directly
+        if self.first_episode:
+            self.netai_gym_api_client.connect()
+        else:
             self.netai_gym_api_client.send(self.last_action_list) #send action to netai server
 
         ok_flag, terminal_flag ,df_list = self.netai_gym_api_client.recv()#first measurement
@@ -125,6 +130,10 @@ class NetAIEnv(gym.Env):
         #receive measurement from netai server
         ok_flag, terminate_flag,  df_list = self.netai_gym_api_client.recv()
         if terminate_flag == True:
+            self.first_episode = True
+            self.current_ep = 0
+            quit()
+            #simulation already ended, connect again in the reset function to start a new one...
             return [], 0, [], [], terminate_flag
         #while self.enable_rl_agent and not ok_flag:
         #    print("[WARNING], some users may not have a valid measurement, for qos_steering case, the qos_test is not finished before a measurement return...")

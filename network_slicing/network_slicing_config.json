@@ -50,6 +50,24 @@
         "measurement_guard_interval_ms": 0
       }
     },
+  
+  "rl_agent_config":{
+    "agent": "",
+    "policy": "MlpPolicy",
+    "train": true,
+    "reward_type" : "delay",
+    "input": "matrix"
+  },
+
+  "rl_agent_config_option_list":
+  {
+    "agent": ["", "PPO", "DDPG"],
+    "policy": ["MlpPolicy"],
+    "train": [true, false],
+    "reward_type" : ["delay", "throughput"],
+    "input": ["matrix", "flat"]
+  },
+
   "gmasim_action_template":{
       "type": "gmasim-action",
       "end_ts": 0,
