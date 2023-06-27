@@ -70,7 +70,11 @@ class NetAIEnv(gym.Env):
         else:
             self.netai_gym_api_client.send(self.last_action_list) #send action to netai server
 
-        ok_flag, terminal_flag ,df_list = self.netai_gym_api_client.recv()#first measurement
+        measurement_report = self.netai_gym_api_client.recv()#first measurement
+        ok_flag = measurement_report.ok_flag
+        terminate_flag = measurement_report.terminate_flag
+        df_list =  measurement_report.df_list
+
         df_phy_lte_max_rate = df_list[0]
         df_phy_wifi_max_rate = df_list[1]
         df_load = df_list[2]
@@ -128,7 +132,10 @@ class NetAIEnv(gym.Env):
 
     def get_obs_reward(self):
         #receive measurement from netai server
-        ok_flag, terminate_flag,  df_list = self.netai_gym_api_client.recv()
+        measurement_report = self.netai_gym_api_client.recv()
+        ok_flag = measurement_report.ok_flag
+        terminate_flag = measurement_report.terminate_flag
+        df_list =  measurement_report.df_list
         if terminate_flag == True:
             self.first_episode = True
             self.current_ep = 0
