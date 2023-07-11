@@ -15,6 +15,7 @@ class Actor(nn.Module):
             nn.ReLU(),
             nn.Linear(256, action_dim),
         )
+        self.action_std = action_std
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
     def forward(self, state):

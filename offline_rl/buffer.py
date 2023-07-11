@@ -5,6 +5,7 @@
 import numpy as np
 import pandas as pd
 import h5py
+import torch
 
 class ReplayBuffer:
     def __init__(self, max_size, obs_shape, n_actions):
@@ -29,11 +30,11 @@ class ReplayBuffer:
         max_mem = min(self.mem_cntr, self.mem_size)
         batch = np.random.choice(max_mem, batch_size, replace=False)
 
-        states = self.state_memory[batch]
-        states_ = self.new_state_memory[batch]
-        actions = self.action_memory[batch]
-        rewards = self.reward_memory[batch]
-        dones = self.terminal_memory[batch]
+        states = torch.Tensor(self.state_memory[batch])
+        states_ = torch.Tensor(self.new_state_memory[batch])
+        actions = torch.Tensor(self.action_memory[batch])
+        rewards = torch.Tensor(self.reward_memory[batch])
+        dones = torch.Tensor(self.terminal_memory[batch])
 
         return states, actions, rewards, states_, dones
 

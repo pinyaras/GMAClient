@@ -5,6 +5,7 @@ import pathlib
 import json
 import sys
 import time
+import torch
 from netai_gym import NetAIEnv
 
 import wandb
@@ -44,7 +45,7 @@ def train(agent,buffer, env, config_json):
         print(config_json['gmasim_config']['LTE']['measurement_guard_interval_ms'])
         sys.exit('[Error!] The value of GMA, Wi-Fi, and LTE measurement_interval_ms + measurement_guard_interval_ms should be the same!')
     
-    obs = env.reset()
+    obs = torch.Tensor(env.reset())
     for _ in range(num_steps):
         action = agent.predict(obs)
         new_obs, reward, done, info = env.step(action)
@@ -225,9 +226,9 @@ def main():
 
     use_case_helper.set_config(config_json)
     env = NetAIEnv(client_id, use_case_helper, config_json) # pass id, and configure file
-    obs_shape = env.get_num_of_observation_features()
-    action_shape = len(env.get_action_space())
-    buffer = ReplayBuffer(max_size=1e6)
+    obs_shape = 10
+    action_shape = 2
+    buffer = ReplayBuffer(max_size=int(1e6),obs_shape=obs_shape,n_actions=action_shape)
     if rl_alg != "system_default":
 
         train_flag = config_json['rl_agent_config']['train']
