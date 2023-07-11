@@ -7,12 +7,10 @@ import sys
 import time
 from netai_gym import NetAIEnv
 
-from stable_baselines3 import A2C, DDPG, PPO, SAC, TD3
-from stable_baselines3.common.vec_env import VecNormalize
 import wandb
 # from wandb.integration.sb3 import WandbCallback
-from stable_baselines3.common.callbacks import BaseCallback
-from stable_baselines3.common.callbacks import CheckpointCallback
+from offline_rl.buffer import ReplayBuffer
+from offline_rl.SAC import SACAgent as SAC
 from nqos_split.nqos_split_helper import single_link_policy
 from nqos_split.nqos_split_helper import nqos_split_helper
 from qos_steer.qos_steer_helper import qos_steer_helper
@@ -22,13 +20,13 @@ MODEL_SAVE_FREQ = 1000
 LOG_INTERVAL = 10
 NUM_OF_EVALUATE_EPISODES = 5
 
-checkpoint_callback = CheckpointCallback(
-    save_freq=MODEL_SAVE_FREQ,  # Save the model every 1 episode
-    save_path='./models/',
-    name_prefix='rl_model' # should be passed from the json file.
-)
+# checkpoint_callback = CheckpointCallback(
+#     save_freq=MODEL_SAVE_FREQ,  # Save the model every 1 episode
+#     save_path='./models/',
+#     name_prefix='rl_model' # should be passed from the json file.
+# )
 
-def train(agent, config_json):
+def train(agent,buffer, env, config_json):
 
     num_steps = 0
 
@@ -46,8 +44,21 @@ def train(agent, config_json):
         print(config_json['gmasim_config']['LTE']['measurement_guard_interval_ms'])
         sys.exit('[Error!] The value of GMA, Wi-Fi, and LTE measurement_interval_ms + measurement_guard_interval_ms should be the same!')
     
-    model = agent.learn(total_timesteps=num_steps,log_interval=LOG_INTERVAL, callback=checkpoint_callback)
-    model.save(config_json['rl_agent_config']['agent'] )
+    obs = env.reset()
+    for _ in range(num_steps):
+        action = agent.predict(obs)
+        new_obs, reward, done, info = env.step(action)
+        buffer.store(obs, action, reward, new_obs, done)
+        obs = new_obs if not done else env.reset()
+
+        if len(buffer) >= agent.batch_size:
+            experiences = buffer.sample()
+            agent.learn(*experiences)
+
+        if _ % MODEL_SAVE_FREQ == 0:
+            agent.save(config_json['rl_agent_config']['agent'])
+
+    agent.save(config_json['rl_agent_config']['agent'])
 
     #TODD Terminate the RL agent when the simulation ends.
 def system_default_policy(env, config_json):
@@ -177,11 +188,12 @@ def main():
             config_json['session_name'] = username
 
     alg_map = {
-        'PPO': PPO,
-        'DDPG': DDPG,
-        'SAC': SAC,
-        'TD3': TD3,
-        'A2C': A2C,
+        # 'PPO': PPO,
+        # 'DDPG': DDPG,
+        # 'SAC': SAC,
+        # 'TD3': TD3,
+        # 'A2C': A2C,
+        'SAC' : SAC,
         'system_default': system_default_policy,
         'LTE': single_link_policy,
         'Wi-Fi': single_link_policy
@@ -191,6 +203,7 @@ def main():
     #    'MlpPolicy': "MlpPolicy",
     #    'CustomLSTMPolicy': "CustomLSTMPolicy",
     #}
+    
 
     # Choose the agent
     agent_class = alg_map.get(rl_alg, None)
@@ -212,10 +225,14 @@ def main():
 
     use_case_helper.set_config(config_json)
     env = NetAIEnv(client_id, use_case_helper, config_json) # pass id, and configure file
-
+    obs_shape = env.get_num_of_observation_features()
+    action_shape = len(env.get_action_space())
+    buffer = ReplayBuffer(max_size=1e6)
     if rl_alg != "system_default":
 
         train_flag = config_json['rl_agent_config']['train']
+        #TODO: implement offline rl identification, if not offline, then collect data.
+        # offline_flag = config_json['rl_agent_config']['is_offline']
         #link_type = config_json['rl_agent_config']['link_type']
 
         if rl_alg == "LTE" or rl_alg == "Wi-Fi" :
@@ -231,8 +248,9 @@ def main():
             evaluate(agent, env)
         else:
             # Train the agent
-            agent = agent_class(config_json['rl_agent_config']['policy'], env, verbose=1, tensorboard_log=f"runs/{run.id}")
-            train(agent, config_json)
+            # TODO: Need to change the training part here, current training is a complete blackbox which is not good for offline RL
+            agent = agent_class(obs_shape, action_shape, 1e-3, 1e-2)
+            train(agent, env=env,buffer=buffer,config_json=config_json)
     else:
         #use the system_default algorithm...
         agent_class(env, config_json)

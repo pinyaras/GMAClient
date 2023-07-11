@@ -2,20 +2,20 @@
   "gmasim_config":{
       "type": "gmasim-start",
       "use_case": "network_slicing",
-      "simulation_time_s": 5,
+      "simulation_time_s": 15,
       "random_run": 2,
       "downlink": true,
       "max_wait_time_for_action_ms": -1,
       "enb_locations":{
         "x":40,
-        "y":0,
+        "y":5,
         "z":3
       },
       "ap_locations":[
       ],
       "slice_list":[
-        {"num_users":10,"dedicated_rbg":0,"prioritized_rbg":13,"shared_rbg":25},
-        {"num_users":30,"dedicated_rbg":0,"prioritized_rbg":12,"shared_rbg":25}
+        {"num_users":10,"dedicated_rbg":0,"prioritized_rbg": 10,"shared_rbg":25},
+        {"num_users":10,"dedicated_rbg":0,"prioritized_rbg": 15,"shared_rbg":25}
       ],
       "user_left_right_speed_m/s": 1,
       "user_location_range":{
@@ -28,7 +28,7 @@
       "app_and_measurement_start_time_ms": 1000,
       "transport_protocol": "udp",
       "min_udp_rate_per_user_mbps": 2,
-      "max_udp_rate_per_user_mbps": 2,
+      "max_udp_rate_per_user_mbps": 6,
       "qos_requirement": {
         "delay_bound_ms": 100
       },
@@ -52,7 +52,7 @@
     },
   
   "rl_agent_config":{
-    "agent": "",
+    "agent": "SAC",
     "policy": "MlpPolicy",
     "train": true,
     "reward_type" : "delay",
