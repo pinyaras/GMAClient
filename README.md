@@ -1,5 +1,62 @@
 # Network Gym Client 
-Network Gym Client is a python-based client for Network Gym: a ns3-based Data-Driven AI/ML-enabled Multi-Access Network Simulator. In this release, Network GYm Client supports three environments nqos_split, qos_steer, and network slicing. It also includes the SOTA RL algorithms from the [stable-baselines3](https://stable-baselines3.readthedocs.io/en/master/), e.g., PPO, DDPG, SAC, TD3, and A2C.
+Network Gym Client is a python-based client software for Network Gym: AI/ML-enabled Multi-Access Network Simulation-as-a-Service Framework. The Client connects to the Server/Environment remotely to train the agent.
+ At present, Network Gym Client supports three environments: nqos_split, qos_steer, and network slicing. It also includes the SOTA RL algorithms from the [stable-baselines3](https://stable-baselines3.readthedocs.io/en/master/), e.g., PPO, DDPG, SAC, TD3, and A2C.
+
+
+```mermaid
+flowchart TB
+
+subgraph network_gym.server
+northbound <--> southbound[[southbound_interface]]
+end
+
+subgraph network_gym.env
+southbound_interface
+simulator
+emulator
+testbed 
+end
+
+agent <--> gymnasium.env
+
+gymnasium.env -- action --> adapter
+adapter -- obs,rewards --> gymnasium.env
+
+subgraph network_gym.client
+gymnasium.env
+adapter
+northbound_interface[[northbound_interface]]
+end
+
+
+
+adapter --policy--> northbound_interface
+northbound_interface --network_stats--> adapter
+
+
+northbound_interface --env_config,policy--> northbound[[northbound_interface]]
+northbound --network_stats--> northbound_interface
+
+
+
+
+southbound --env_config,policy--> southbound_interface[[southbound_interface]]
+southbound_interface --network_stats--> southbound
+
+```
+
+## Class Structure
+
+This repository includes the agent and network_gym.client components. The network_gym.server and network_gym.env components are hosted in our vLab machines. After cloning this repository, users can launch the network_gym.client to remotely connects to the newtork_gym.server and newtork_gym.env via the northbound interface.
+
+- main()
+  - network_gym
+    - client
+      - gymnasium.env: *a customized gymnasium environment that communicates with stable-baselines3 agent.*
+      - adapter: *transform the network stats measurements to obs and reward and translate action to policy that can be applied to the network.*
+      - northbound_interface: *communicates network confiugration, network stats and policy between client and network_gym server/environment.*
+  - agent: the agents from statble-baselines3.
+
 
 ## ⌛ Installation:
 - Clone this repo.
@@ -56,7 +113,7 @@ Host mlwins
 
 ## 🚀 Start Network Gym Client:
 
-- Update the common configuration file [common_config.json](common_config.json). Go to the ⚙️ Configurable File Format Section for more details.
+- Update the common configuration file [common_config.json](network_gym/common_config.json). Go to the ⚙️ Configurable File Format Section for more details.
 
 - Update the environment depend configuration file [network_gym/envs/qos_steer/config.json](network_gym/envs/qos_steer/config.json) or [network_gym/envs/nqos_split/config.json](network_gym/envs/nqos_split/config.json) or [network_gym/envs/network_slicing/config.json](network_gym/envs/network_slicing/config.json)
 
@@ -98,22 +155,21 @@ python3 main_rl.py --env=[ENV]
 #example code for nqos_split environment using PPO agent
 
 from stable_baselines3 import PPO
-from network_gym.client import network_gym_client_env
-from network_gym.envs.nqos_split.adapter import env_adapter
-import wandb
+import network_gym.client
+from network_gym.envs.nqos_split.adapter import nqos_split_adapter
 
 ...
 # training
 # client_id is a terminal argument, default = 0.
 # config_json includes the common_config.json and config.json.
-env = network_gym_client_env(client_id, env_adapter, config_json, wandb) # passing client_id, environment adapter, configure file and wanDb as arguments
+env = network_gym.client.make(client_id, nqos_split_adapter, config_json) # make a network env using pass client id, adatper and configure file arguements.
 model = PPO("MlpPolicy", env, verbose=1) # you can change the env to your deployment environment when the model is trained.
 model.learn(total_timesteps=10_000)
 ...
 ```
  
 ## ⚙️ Configurable File Format:
-- [common_config.json](common_config.json)
+- [common_config.json](network_gym/common_config.json)
 
 ```json
 {
@@ -122,7 +178,7 @@ model.learn(total_timesteps=10_000)
   "session_id": "test",//Make sure to change the "session_id" to your assgined keys.
 }
 ```
-- [qos_steer_config.json](qos_steer/qos_steer_config.json) or [nqos_split_config.json](nqos_split/nqos_split_config.json) or [network_slicint.json](network_slicing/network_slicing_config.json)
+- [network_gym/envs/qos_steer/config.json](network_gym/envs/qos_steer/config.json) or [network_gym/envs/nqos_split/config.json](network_gym/envs/nqos_split/config.json) or [network_gym/envs/network_slicing/config.json](network_gym/envs/network_slicing/config.json)
 ```json
 {
   //never use negative value for any configure vale!!!
