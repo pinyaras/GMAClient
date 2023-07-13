@@ -1,6 +1,6 @@
-from use_case_base_helper import use_case_base_helper
+from network_gym.adapter import adapter
 import sys
-from gym import spaces
+from gymnasium import spaces
 import numpy as np
 
 def get_rbg_size (bandwidth):
@@ -12,16 +12,16 @@ def get_rbg_size (bandwidth):
             return (i + 1)
     return (-1)
 
-class network_slicing_helper(use_case_base_helper):
+class network_slicing_adapter(adapter):
     def __init__(self, wandb):
-        self.use_case = "network_slicing"
+        self.env = "network_slicing"
         super().__init__(wandb)
 
     def get_action_space(self):
-        if (self.use_case == self.config_json['gmasim_config']['use_case']):
+        if (self.env == self.config_json['gmasim_config']['env']):
             return spaces.Box(low=0, high=1, shape=(len(self.config_json['gmasim_config']['slice_list']),), dtype=np.float32)
         else:
-            sys.exit("[ERROR] wrong use case or RL agent.")
+            sys.exit("[ERROR] wrong environment or RL agent.")
     
     #consistent with the prepare_observation function.
     def get_num_of_observation_features(self):

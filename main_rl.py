@@ -1,11 +1,12 @@
 import argparse
-import gym
+import gymnasium as gym
 import numpy as np
 import pathlib
 import json
 import sys
 import time
-from netai_gym import NetAIEnv
+from network_gym.client import network_gym_client_env
+from stable_baselines3.common.env_checker import check_env
 
 from stable_baselines3 import A2C, DDPG, PPO, SAC, TD3
 from stable_baselines3.common.vec_env import VecNormalize
@@ -13,10 +14,10 @@ import wandb
 from wandb.integration.sb3 import WandbCallback
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.callbacks import CheckpointCallback
-from nqos_split.nqos_split_helper import single_link_policy
-from nqos_split.nqos_split_helper import nqos_split_helper
-from qos_steer.qos_steer_helper import qos_steer_helper
-from network_slicing.network_slicing_helper import network_slicing_helper
+from network_gym.envs.nqos_split.adapter import single_link_policy
+from network_gym.envs.nqos_split.adapter import nqos_split_adapter
+from network_gym.envs.qos_steer.adapter import qos_steer_adapter
+from network_gym.envs.network_slicing.adapter import network_slicing_adapter
 
 MODEL_SAVE_FREQ = 1000
 LOG_INTERVAL = 10
@@ -106,26 +107,26 @@ def main():
 
     #load config files
     FILE_PATH = pathlib.Path(__file__).parent
-    #common_config.json is shared by all use cases
-    f = open(FILE_PATH / 'common_config.json')
+    #common_config.json is shared by all environments
+    f = open(FILE_PATH / 'network_gym/common_config.json')
     common_config_json = json.load(f)
     
-    #load the use case dependent config file
-    file_name = args.use_case + '/' + args.use_case +'_config.json'
+    #load the environment dependent config file
+    file_name = 'network_gym/envs/' +args.env + '/config.json'
     f = open(FILE_PATH / file_name)
 
     use_case_config_json = json.load(f)
     config_json = {**common_config_json, **use_case_config_json}
-    config_json['gmasim_config']['use_case'] = args.use_case
+    config_json['gmasim_config']['env'] = args.env
 
-    if args.use_case == "network_slicing":
+    if args.env == "network_slicing":
         # for network slicing, the user number is configured using the slice list. Cannot use the argument parser!
         config_json['gmasim_config']['num_users'] = 0
 
         for item in config_json['gmasim_config']['slice_list']:
             config_json['gmasim_config']['num_users'] += item['num_users']
         if args.num_users != -1:
-            sys.exit("cannot config user number in terminal number for network slicing use case.")
+            sys.exit("cannot config user number in terminal number for network slicing environment.")
 
     if args.num_users != -1:
         config_json['gmasim_config']['num_users'] = args.num_users
@@ -150,7 +151,7 @@ def main():
 
     config = {
         "policy_type": "MlpPolicy",
-        "env_id": "netai-gym",
+        "env_id": "network_gym",
         "RL_algo" : rl_alg
     }
 
@@ -158,7 +159,7 @@ def main():
         # name=rl_alg + "_" + str(config_json['gmasim_config']['num_users']) + "_LTE_" +  str(config_json['gmasim_config']['LTE']['resource_block_num']),
         #name=rl_alg + "_" + str(config_json['gmasim_config']['num_users']) + "_" +  str(config_json['gmasim_config']['LTE']['resource_block_num']),
         name=rl_alg,
-        project="netai-gym",
+        project="network_gym",
         config=config,
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         # save_code=True,  # optional
@@ -199,19 +200,21 @@ def main():
     #client_id = list(alg_map.keys()).index(rl_alg) + 1
     client_id = args.client_id
     # Create the environment
-    if(args.use_case == "nqos_split"):
-        use_case_helper = nqos_split_helper(wandb)
-    elif(args.use_case == "qos_steer"):
-        use_case_helper = qos_steer_helper(wandb)
-    elif(args.use_case == "network_slicing"):
-        use_case_helper = network_slicing_helper (wandb)
+    if(args.env == "nqos_split"):
+        env_adapter = nqos_split_adapter(wandb)
+    elif(args.env == "qos_steer"):
+        env_adapter = qos_steer_adapter(wandb)
+    elif(args.env == "network_slicing"):
+        env_adapter = network_slicing_adapter (wandb)
     else:
-       sys.exit("[" + args.use_case + "] use case is not implemented.")
+       sys.exit("[" + args.env + "] environment is not implemented.")
 
-    print("[" + args.use_case + "] use case selected.")
+    print("[" + args.env + "] environment selected.")
 
-    use_case_helper.set_config(config_json)
-    env = NetAIEnv(client_id, use_case_helper, config_json) # pass id, and configure file
+    env_adapter.set_config(config_json)
+    env = network_gym_client_env(client_id, env_adapter, config_json) # pass id, and configure file
+    # It will check your custom environment and output additional warnings if needed
+    # check_env(env)
 
     if rl_alg != "system_default":
 
@@ -238,9 +241,9 @@ def main():
         agent_class(env, config_json)
         
 def arg_parser():
-    parser = argparse.ArgumentParser(description='NetAI Client')
-    parser.add_argument('--use_case', type=str, required=True, choices=['nqos_split', 'qos_steer', 'network_slicing'],
-                        help='Select a use case to start NetAI Client (nqos_split, qos_steer, network_slicing)')
+    parser = argparse.ArgumentParser(description='Network Gym Client')
+    parser.add_argument('--env', type=str, required=True, choices=['nqos_split', 'qos_steer', 'network_slicing'],
+                        help='Select a environment to start Network Gym Client (nqos_split, qos_steer, network_slicing)')
     parser.add_argument('--client_id', type=int, required=False, default=0,
                         help='Select client id to start simulation')
     parser.add_argument('--num_users', type=int, required=False, default=-1,

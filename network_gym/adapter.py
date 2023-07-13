@@ -1,15 +1,15 @@
 import sys
 
-#base class for use case helpers
-class use_case_base_helper:
+#base class for environment adapter
+class adapter:
     def __init__(self, wandb):
         self.config_json = None
         self.wandb_log_info = None
         self.wandb = wandb
 
     def set_config (self, config_json):
-        if config_json['gmasim_config']['use_case'] != self.use_case:
-            sys.exit("[ERROR] wrong use case helper. config file use case: " + str(config_json['gmasim_config']['use_case']) + " helper use case: " + str(self.use_case))
+        if config_json['gmasim_config']['env'] != self.env:
+            sys.exit("[ERROR] wrong environment helper. config file environment: " + str(config_json['gmasim_config']['env']) + " helper environment: " + str(self.env))
         self.config_json = config_json
     
     def wandb_log (self):

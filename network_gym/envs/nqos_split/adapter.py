@@ -1,12 +1,7 @@
-try:
-    # Try to import from the same directory
-    from use_case_base_helper import use_case_base_helper
-except ImportError:
-    #Handle when import from custom RL
-    from GMAClient.use_case_base_helper import use_case_base_helper
+from network_gym.adapter import adapter
 
 import sys
-from gym import spaces
+from gymnasium import spaces
 import numpy as np
 import pandas as pd
 import math
@@ -67,25 +62,26 @@ def single_link_policy(env, config_json):
         # apply the action
         obs, reward, done, info = env.step(action_list)
 
-class nqos_split_helper(use_case_base_helper):
+class nqos_split_adapter(adapter):
     def __init__(self, wandb):
-        self.use_case = "nqos_split"
+        self.env = "nqos_split"
         self.action_max_value = 32
         super().__init__(wandb)
 
     def get_action_space(self): 
-        if (self.use_case == self.config_json['gmasim_config']['use_case'] and self.config_json['rl_agent_config']['agent'] != "custom" and "GMA" ):
+        if (self.env == self.config_json['gmasim_config']['env'] and self.config_json['rl_agent_config']['agent'] != "custom" and "GMA" ):
             return spaces.Box(low=0, high=1,
                                             shape=(int(self.config_json['gmasim_config']['num_users']),), dtype=np.float32)
         #This is for CleanRL custom
-        elif (self.use_case == self.config_json['gmasim_config']['use_case'] and self.config_json['rl_agent_config']['agent'] == "custom"):
+        elif (self.env == self.config_json['gmasim_config']['env'] and self.config_json['rl_agent_config']['agent'] == "custom"):
             #Define your own action space to match with output of actor network
             return spaces.Box(low=0, high=1,
                                             shape=(1,), dtype=np.float32)
         else:
-            sys.exit("[ERROR] wrong use case or RL agent.")
+            sys.exit("[ERROR] wrong environment or RL agent.")
 
     #consistent with the prepare_observation function.
+    # change this fucntion to get_obs_space..
     def get_num_of_observation_features(self):
         return 3
     
@@ -172,6 +168,8 @@ class nqos_split_helper(use_case_base_helper):
                 print("[WARNING] some feature returns empty measurement, e.g., -1")
         else:
             print("Please specify the input format to flat or matrix")
+        
+        # add a check that the size of observation equals the prepared observation space.
         return observation
 
     def prepare_action(self, actions):

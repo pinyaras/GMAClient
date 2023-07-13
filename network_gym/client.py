@@ -1,18 +1,14 @@
-import gym
+import gymnasium as gym
 import numpy as np
-from gym import spaces
-from gym.spaces import Box
+from gymnasium import spaces
+from gymnasium.spaces import Box
 import pandas as pd
 from stable_baselines3.common.running_mean_std import RunningMeanStd
 
 import pathlib
 import json
 import sys
-try:
-    # Try to import from the same directory
-    from netai_gym_open_api import api_client as netai_gym_api_client
-except ImportError:
-    from .netai_gym_open_api import api_client as netai_gym_api_client
+from network_gym.northbound_interface import northbound_interface_client
 
 np.set_printoptions(precision=3)
 
@@ -20,22 +16,22 @@ FILE_PATH = pathlib.Path(__file__).parent
 
 STEPS_PER_EPISODE = 100
 
-class NetAIEnv(gym.Env):
+class network_gym_client_env(gym.Env):
     """Custom Environment that follows gym interface."""
 
-    def __init__(self, id, use_case_helper, config_json):
+    def __init__(self, id, env_adapter, config_json):
         super().__init__()
 
         #Define config params
-        self.use_case_helper = use_case_helper
+        self.env_adapter = env_adapter
         self.num_users = int(config_json['gmasim_config']['num_users'])
         self.rl_alg = config_json['rl_agent_config']['agent'] 
         self.enable_rl_agent = True
         if config_json['rl_agent_config']['agent']=="system_default":
             self.enable_rl_agent = False
-        self.action_space = use_case_helper.get_action_space()
+        self.action_space = env_adapter.get_action_space()
 
-        num_features = use_case_helper.get_num_of_observation_features()
+        num_features = env_adapter.get_num_of_observation_features()
 
         if config_json["rl_agent_config"]['input']  == "flat":
             self.observation_space = spaces.Box(low=0, high=1000,
@@ -47,7 +43,7 @@ class NetAIEnv(gym.Env):
             sys.exit("[" + config_json["rl_agent_config"]['input']  + "] input type not valid.")
 
         self.normalize_obs = RunningMeanStd(shape=self.observation_space.shape)
-        self.netai_gym_api_client = netai_gym_api_client(id, config_json) #initial netai_gym_api_client
+        self.northbound_interface_client = northbound_interface_client(id, config_json) #initial northbound_interface_client
         #self.max_counter = int(config_json['gmasim_config']['simulation_time_s'] * 1000/config_json['gmasim_config']['GMA']['measurement_interval_ms'])# Already checked the interval for Wi-Fi and LTE in the main file
 
         #self.link_type = config_json['rl_agent_config']['link_type'] 
@@ -59,18 +55,18 @@ class NetAIEnv(gym.Env):
         self.last_action_list = []
 
         
-    def reset(self):
+    def reset(self, seed=None, options=None):
         self.counter = 0
         self.current_step = 0
         # if a new simulation starts (first episode) in the reset function, we need to connect to server
         # else a new episode of the same simulation.
             # do not need to connect, send action directly
         if self.first_episode:
-            self.netai_gym_api_client.connect()
+            self.northbound_interface_client.connect()
         else:
-            self.netai_gym_api_client.send(self.last_action_list) #send action to netai server
+            self.northbound_interface_client.send(self.last_action_list) #send action to network gym server
 
-        measurement_report = self.netai_gym_api_client.recv()#first measurement
+        measurement_report = self.northbound_interface_client.recv()#first measurement
         ok_flag = measurement_report.ok_flag
         terminate_flag = measurement_report.terminate_flag
         df_list =  measurement_report.df_list
@@ -93,7 +89,7 @@ class NetAIEnv(gym.Env):
         if self.enable_rl_agent and not ok_flag:
             print("[WARNING], some users may not have a valid measurement, for qos_steering case, the qos_test is not finished before a measurement return...")
 
-        observation = self.use_case_helper.prepare_observation(df_list)
+        observation = self.env_adapter.prepare_observation(df_list)
 
         # print(observation.shape)
         self.normalize_obs.update(observation)
@@ -101,23 +97,23 @@ class NetAIEnv(gym.Env):
 
         self.current_ep += 1
 
-        return normalized_obs.astype(np.float32)
+        return normalized_obs.astype(np.float32), {"df_owd": df_owd, "obs" : observation, "terminate_flag": terminate_flag}
         # return observation  # reward, done, info can't be included
 
     def send_action(self, actions):
 
         if not self.enable_rl_agent or actions.size == 0:
             #empty action
-            self.netai_gym_api_client.send([]) #send empty action to netai server
+            self.northbound_interface_client.send([]) #send empty action to network gym server
             return
         if self.rl_alg == "Wi-Fi" or  self.rl_alg == "LTE":
-            self.netai_gym_api_client.send(actions) #send empty action to netai server
+            self.northbound_interface_client.send(actions) #send empty action to network gym server
             return           
 
-        action_list = self.use_case_helper.prepare_action(actions)
+        action_list = self.env_adapter.prepare_action(actions)
 
         self.last_action_list = action_list
-        self.netai_gym_api_client.send(action_list) #send action to netai server
+        self.northbound_interface_client.send(action_list) #send action to network gym server
 
 
 
@@ -131,8 +127,8 @@ class NetAIEnv(gym.Env):
 
 
     def get_obs_reward(self):
-        #receive measurement from netai server
-        measurement_report = self.netai_gym_api_client.recv()
+        #receive measurement from network gym server
+        measurement_report = self.northbound_interface_client.recv()
         ok_flag = measurement_report.ok_flag
         terminate_flag = measurement_report.terminate_flag
         df_list =  measurement_report.df_list
@@ -144,8 +140,8 @@ class NetAIEnv(gym.Env):
             return [], 0, [], [], terminate_flag
         #while self.enable_rl_agent and not ok_flag:
         #    print("[WARNING], some users may not have a valid measurement, for qos_steering case, the qos_test is not finished before a measurement return...")
-        #    self.netai_gym_api_client.send(self.last_action_list) #send the same action to netai server
-        #    ok_flag, df_list = self.netai_gym_api_client.recv() 
+        #    self.northbound_interface_client.send(self.last_action_list) #send the same action to network gym server
+        #    ok_flag, df_list = self.northbound_interface_client.recv() 
         if self.enable_rl_agent and not ok_flag:
             print("[WARNING], some users may not have a valid measurement, for qos_steering case, the qos_test is not finished before a measurement return...")
         df_phy_lte_max_rate = df_list[0]
@@ -163,7 +159,7 @@ class NetAIEnv(gym.Env):
         #print(df_phy_lte_rb_usage)
         #print(df_delay_violation)
 
-        observation = self.use_case_helper.prepare_observation(df_list)
+        observation = self.env_adapter.prepare_observation(df_list)
 
         print("step function at time:" + str(df_load["end_ts"][0]))
         # print(observation)
@@ -172,19 +168,19 @@ class NetAIEnv(gym.Env):
         normalized_obs = (observation - self.normalize_obs.mean) / np.sqrt(self.normalize_obs.var)
         
         #Get reward
-        rewards = self.use_case_helper.prepare_reward(df_list)
+        rewards = self.env_adapter.prepare_reward(df_list)
         
         return normalized_obs, rewards, df_owd, observation, terminate_flag
 
     def step(self, actions):
         '''
-        1.) Get action lists from RL agent and send to netai server
+        1.) Get action lists from RL agent and send to network gym server
         2.) Get measurements from gamsim and normalize obs and reward
         3.) Check if it is the last step in the episode
         4.) return obs,reward,done,info
         '''
 
-        #1.) Get action lists from RL agent and send to netai server
+        #1.) Get action lists from RL agent and send to network gym server
         self.send_action(actions)
 
         #2.) Get measurements from gamsim and normalize obs and reward
@@ -193,7 +189,7 @@ class NetAIEnv(gym.Env):
             return [], 0, True,  {"df_owd": [], "obs" : [], "terminate_flag": terminate_flag}
 
 
-        self.use_case_helper.wandb_log()
+        self.env_adapter.wandb_log()
 
         #3.) Check end of Episode
         done = self.current_step >= self.max_steps
@@ -207,4 +203,4 @@ class NetAIEnv(gym.Env):
                 self.first_episode = False
 
         #4.) return observation, reward, done, info
-        return normalized_obs.astype(np.float32), reward, done,  {"df_owd": df_owd, "obs" : obs, "terminate_flag": terminate_flag}
+        return normalized_obs.astype(np.float32), reward, done, done, {"df_owd": df_owd, "obs" : obs, "terminate_flag": terminate_flag}

@@ -1,17 +1,17 @@
-from use_case_base_helper import use_case_base_helper
+from network_gym.adapter import adapter
 import sys
-from gym import spaces
+from gymnasium import spaces
 import numpy as np
 
 
-class qos_steer_helper(use_case_base_helper):
+class qos_steer_adapter(adapter):
     def __init__(self, wandb):
-        self.use_case = "qos_steer"
+        self.env = "qos_steer"
         self.action_max_value = 1
         super().__init__(wandb)
 
     def get_action_space (self):
-        if (self.use_case == self.config_json['gmasim_config']['use_case']):
+        if (self.env == self.config_json['gmasim_config']['env']):
             #self.action_space = spaces.Box(low=0, high=1,
             #                                shape=(self.num_users,), dtype=np.uint8)
             myarray = np.empty([int(self.config_json['gmasim_config']['num_users']),], dtype=int)
@@ -19,7 +19,7 @@ class qos_steer_helper(use_case_base_helper):
             #print(myarray)
             return spaces.MultiDiscrete(myarray)
         else:
-            sys.exit("[ERROR] wrong use case or RL agent.")
+            sys.exit("[ERROR] wrong environment or RL agent.")
 
     #consistent with the prepare_observation function.
     def get_num_of_observation_features(self):
