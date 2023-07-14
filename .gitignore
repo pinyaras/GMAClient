@@ -7,4 +7,3 @@
 *.pyc
 network_gym_accounts.csv
 *northbound_interface.py
-/docs
