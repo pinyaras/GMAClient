@@ -6,11 +6,11 @@ Network Gym Client is a python-based client software for Network Gym: AI/ML-enab
 ```mermaid
 flowchart TB
 
-subgraph network_gym.server
+subgraph network_gym_server
 northbound <--> southbound[[southbound_interface]]
 end
 
-subgraph network_gym.env
+subgraph network_gym_env
 southbound_interface
 simulator
 emulator
@@ -22,7 +22,7 @@ agent <--> gymnasium.env
 gymnasium.env -- action --> adapter
 adapter -- obs,rewards --> gymnasium.env
 
-subgraph network_gym.client
+subgraph network_gym_client
 gymnasium.env
 adapter
 northbound_interface[[northbound_interface]]
@@ -47,14 +47,13 @@ southbound_interface --network_stats--> southbound
 
 ## Class Structure
 
-This repository includes the agent and network_gym.client components. The network_gym.server and network_gym.env components are hosted in our vLab machines. After cloning this repository, users can launch the network_gym.client to remotely connects to the newtork_gym.server and newtork_gym.env via the northbound interface.
+This repository includes the agent and network_gym_client components. The network_gym_server and network_gym_env components are hosted in our vLab machines. After cloning this repository, users can launch the network_gym_client to remotely connects to the newtork_gym_server and newtork_gym_env via the northbound interface.
 
 - main()
-  - network_gym
-    - client
-      - gymnasium.env: *a customized gymnasium environment that communicates with stable-baselines3 agent.*
-      - adapter: *transform the network stats measurements to obs and reward and translate action to policy that can be applied to the network.*
-      - northbound_interface: *communicates network confiugration, network stats and policy between client and network_gym server/environment.*
+  - network_gym_client
+    - gymnasium.env: *a customized gymnasium environment that communicates with stable-baselines3 agent.*
+    - adapter: *transform the network stats measurements to obs and reward and translate action to policy that can be applied to the network.*
+    - northbound_interface: *communicates network confiugration, network stats and policy between client and network_gym server/environment.*
   - agent: the agents from statble-baselines3.
 
 
@@ -63,11 +62,11 @@ This repository includes the agent and network_gym.client components. The networ
 ```
 git clone https://github.com/pinyaras/GMAClient.git
 ```
-- Download the [northbound_interface](https://github.com/IntelLabs/gma/blob/master/network_gym/northbound_interface.py) library.
+- Download the [northbound_interface](https://github.com/IntelLabs/gma/blob/master/network_gym_client/northbound_interface.py) library.
 
 ```
-cd GMAClient/network_gym/
-wget https://raw.githubusercontent.com/IntelLabs/gma/master/network_gym/northbound_interface.py
+cd GMAClient/network_gym_client/
+wget https://raw.githubusercontent.com/IntelLabs/gma/master/network_gym_client/northbound_interface.py
 ```
 - (Optional) Create a new virtual python environment.
 ```
@@ -113,9 +112,9 @@ Host mlwins
 
 ## 🚀 Start Network Gym Client:
 
-- Update the common configuration file [common_config.json](network_gym/common_config.json). Go to the ⚙️ Configurable File Format Section for more details.
+- Update the common configuration file [common_config.json](network_gym_client/common_config.json). Go to the ⚙️ Configurable File Format Section for more details.
 
-- Update the environment depend configuration file [network_gym/envs/qos_steer/config.json](network_gym/envs/qos_steer/config.json) or [network_gym/envs/nqos_split/config.json](network_gym/envs/nqos_split/config.json) or [network_gym/envs/network_slicing/config.json](network_gym/envs/network_slicing/config.json)
+- Update the environment depend configuration file [network_gym_client/envs/qos_steer/config.json](network_gym_client/envs/qos_steer/config.json) or [network_gym_client/envs/nqos_split/config.json](network_gym_client/envs/nqos_split/config.json) or [network_gym_client/envs/network_slicing/config.json](network_gym_client/envs/network_slicing/config.json)
 
 
 - Start the client using the following command, and visualize the output in WanDB website.
@@ -135,12 +134,12 @@ python3 main_rl.py --env=[ENV]
 
 ```
 📦 Network_Gym_Client
-┣ 📜 main_rl.py (➡️ network_gym, ➡️ stable-baselines3, ➡️ WanDB)
-┗ 📂 network_gym
+┣ 📜 main_rl.py (➡️ network_gym_client, ➡️ stable-baselines3, ➡️ WanDB)
+┗ 📂 network_gym_client
   ┣ 📜 adapter.py
   ┣ 📜 common_config.json
   ┣ 📜 client.py
-  ┣ 📜 northbound_interface.py (➡️ network_gym.server and network_gym.simulator)
+  ┣ 📜 northbound_interface.py (➡️ network_gym_server and network_gym_env)
   ┗ 📂 envs
     ┗ 📂 [ENV_NAME]
       ┣ 📜 adapter.py
@@ -155,21 +154,21 @@ python3 main_rl.py --env=[ENV]
 #example code for nqos_split environment using PPO agent
 
 from stable_baselines3 import PPO
-import network_gym.client
-from network_gym.envs.nqos_split.adapter import nqos_split_adapter
+import network_gym_client
+from network_gym_client.envs.nqos_split.adapter import nqos_split_adapter
 
 ...
 # training
 # client_id is a terminal argument, default = 0.
 # config_json includes the common_config.json and config.json.
-env = network_gym.client.make(client_id, nqos_split_adapter, config_json) # make a network env using pass client id, adatper and configure file arguements.
+env = network_gym_client.make(client_id, nqos_split_adapter, config_json) # make a network env using pass client id, adatper and configure file arguements.
 model = PPO("MlpPolicy", env, verbose=1) # you can change the env to your deployment environment when the model is trained.
 model.learn(total_timesteps=10_000)
 ...
 ```
  
 ## ⚙️ Configurable File Format:
-- [common_config.json](network_gym/common_config.json)
+- [common_config.json](network_gym_client/common_config.json)
 
 ```json
 {
@@ -178,7 +177,7 @@ model.learn(total_timesteps=10_000)
   "session_id": "test",//Make sure to change the "session_id" to your assgined keys.
 }
 ```
-- [network_gym/envs/qos_steer/config.json](network_gym/envs/qos_steer/config.json) or [network_gym/envs/nqos_split/config.json](network_gym/envs/nqos_split/config.json) or [network_gym/envs/network_slicing/config.json](network_gym/envs/network_slicing/config.json)
+- [network_gym_client/envs/qos_steer/config.json](network_gym_client/envs/qos_steer/config.json) or [network_gym_client/envs/nqos_split/config.json](network_gym_client/envs/nqos_split/config.json) or [network_gym_client/envs/network_slicing/config.json](network_gym_client/envs/network_slicing/config.json)
 ```json
 {
   //never use negative value for any configure vale!!!

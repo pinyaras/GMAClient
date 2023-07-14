@@ -1,4 +1,4 @@
-from network_gym.adapter import adapter
+from network_gym_client.adapter import adapter
 import sys
 from gymnasium import spaces
 import numpy as np

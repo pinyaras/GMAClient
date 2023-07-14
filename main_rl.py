@@ -5,7 +5,7 @@ import pathlib
 import json
 import sys
 import time
-from network_gym.client import network_gym_client_env
+import network_gym_client
 from stable_baselines3.common.env_checker import check_env
 
 from stable_baselines3 import A2C, DDPG, PPO, SAC, TD3
@@ -14,10 +14,10 @@ import wandb
 from wandb.integration.sb3 import WandbCallback
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.callbacks import CheckpointCallback
-from network_gym.envs.nqos_split.adapter import single_link_policy
-from network_gym.envs.nqos_split.adapter import nqos_split_adapter
-from network_gym.envs.qos_steer.adapter import qos_steer_adapter
-from network_gym.envs.network_slicing.adapter import network_slicing_adapter
+from network_gym_client.envs.nqos_split.adapter import single_link_policy
+from network_gym_client.envs.nqos_split.adapter import nqos_split_adapter
+from network_gym_client.envs.qos_steer.adapter import qos_steer_adapter
+from network_gym_client.envs.network_slicing.adapter import network_slicing_adapter
 
 MODEL_SAVE_FREQ = 1000
 LOG_INTERVAL = 10
@@ -108,11 +108,11 @@ def main():
     #load config files
     FILE_PATH = pathlib.Path(__file__).parent
     #common_config.json is shared by all environments
-    f = open(FILE_PATH / 'network_gym/common_config.json')
+    f = open(FILE_PATH / 'network_gym_client/common_config.json')
     common_config_json = json.load(f)
     
     #load the environment dependent config file
-    file_name = 'network_gym/envs/' +args.env + '/config.json'
+    file_name = 'network_gym_client/envs/' +args.env + '/config.json'
     f = open(FILE_PATH / file_name)
 
     use_case_config_json = json.load(f)
@@ -151,7 +151,7 @@ def main():
 
     config = {
         "policy_type": "MlpPolicy",
-        "env_id": "network_gym",
+        "env_id": "network_gym_client",
         "RL_algo" : rl_alg
     }
 
@@ -159,7 +159,7 @@ def main():
         # name=rl_alg + "_" + str(config_json['gmasim_config']['num_users']) + "_LTE_" +  str(config_json['gmasim_config']['LTE']['resource_block_num']),
         #name=rl_alg + "_" + str(config_json['gmasim_config']['num_users']) + "_" +  str(config_json['gmasim_config']['LTE']['resource_block_num']),
         name=rl_alg,
-        project="network_gym",
+        project="network_gym_client",
         config=config,
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         # save_code=True,  # optional
@@ -212,8 +212,9 @@ def main():
     print("[" + args.env + "] environment selected.")
 
     env_adapter.set_config(config_json)
-    env = network_gym_client_env(client_id, env_adapter, config_json) # pass id, and configure file
+    env = network_gym_client.make(client_id, env_adapter, config_json) # make a network env using pass client id, adatper and configure file arguements.
     # It will check your custom environment and output additional warnings if needed
+    # only use this function for debug, 
     # check_env(env)
 
     if rl_alg != "system_default":

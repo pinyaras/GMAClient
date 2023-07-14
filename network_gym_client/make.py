@@ -8,7 +8,7 @@ from stable_baselines3.common.running_mean_std import RunningMeanStd
 import pathlib
 import json
 import sys
-from network_gym.northbound_interface import northbound_interface_client
+from network_gym_client.northbound_interface import northbound_interface_client
 
 np.set_printoptions(precision=3)
 
@@ -16,7 +16,7 @@ FILE_PATH = pathlib.Path(__file__).parent
 
 STEPS_PER_EPISODE = 100
 
-class network_gym_client_env(gym.Env):
+class make(gym.Env):
     """Custom Environment that follows gym interface."""
 
     def __init__(self, id, env_adapter, config_json):
