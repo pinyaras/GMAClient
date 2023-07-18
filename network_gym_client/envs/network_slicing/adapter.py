@@ -1,9 +1,20 @@
-from network_gym_client.adapter import adapter
+from network_gym_client.adapter import Adapter
 import sys
 from gymnasium import spaces
 import numpy as np
 
 def get_rbg_size (bandwidth):
+    """Compute the resource block group size based on the bandwith (RB number).
+
+    This code is coppied from ns3.
+    PF type 0 allocation RBG
+
+    Args:
+        bandwidth (int): the resouce block number
+
+    Returns:
+        int: the resouce block group size
+    """
     # PF type 0 allocation RBG
     PfType0AllocationRbg = [10,26,63,110]      # see table 7.1.6.1-1 of 36.213
 
@@ -12,22 +23,68 @@ def get_rbg_size (bandwidth):
             return (i + 1)
     return (-1)
 
-class network_slicing_adapter(adapter):
+class Adapter(Adapter):
+    """Network slicing environment adapter.
+
+    Args:
+        Adapter (Adapter): the base class
+    """
     def __init__(self, wandb):
+        """Initilize adapter
+
+        Args:
+            wandb (wandb): the WandDB databse
+        """
         self.env = "network_slicing"
         super().__init__(wandb)
 
     def get_action_space(self):
+        """Get action space for network slicing env
+
+        Returns:
+            spaces: action spaces
+        """
         if (self.env == self.config_json['gmasim_config']['env']):
             return spaces.Box(low=0, high=1, shape=(len(self.config_json['gmasim_config']['slice_list']),), dtype=np.float32)
         else:
             sys.exit("[ERROR] wrong environment or RL agent.")
     
     #consistent with the prepare_observation function.
-    def get_num_of_observation_features(self):
-        return 3
+    def get_observation_space(self):
+        """Get observation space for network slicing env
+        
+        Returns:
+            spaces: observation spaces
+        """
+        num_features = 3
+        
+        # for network slicing, the user number is configured using the slice list. Cannot use the argument parser!
+        num_users = 0
+        if (self.config_json['gmasim_config'].get('num_users') is None):
+            for item in self.config_json['gmasim_config']['slice_list']:
+                num_users += item['num_users']
+                self.config_json['gmasim_config']['num_users'] = num_users
+        else:
+            print(self.config_json['gmasim_config']['num_users'])
+            num_users = self.config_json['gmasim_config']['num_users']
+
+        obs_space = None
+
+        obs_space =  spaces.Box(low=0, high=1000,
+                                            shape=(num_features,num_users), dtype=np.float32)
+        return obs_space
     
     def prepare_observation(self, df_list):
+        """Prepare observation for network slicing env
+
+        Make sure the returned observation space is consistent with the get_observation_space function.
+
+        Args:
+            df_list (pandas.dataframe): the network stats measurements
+
+        Returns:
+            spaces: observation spaces
+        """
 
         df_phy_lte_max_rate = df_list[0]
         df_phy_wifi_max_rate = df_list[1]
@@ -75,39 +132,50 @@ class network_slicing_adapter(adapter):
             phy_df_rate = emptyFeatureArray
 
         # observation = np.ones((3, 4))
-        if self.config_json["rl_agent_config"]['input'] == "flat":
-            observation = np.concatenate([phy_lte_max_rate, phy_wifi_max_rate, phy_df_rate])
-            if(np.min(observation) < 0):
-                print("[WARNING] some feature returns empty measurement, e.g., -1")
-        elif self.config_json["rl_agent_config"]['input'] == "matrix":
-            observation = np.vstack([phy_lte_max_rate, phy_wifi_max_rate, phy_df_rate])
-            if (observation < 0).any():
-                print("[WARNING] some feature returns empty measurement, e.g., -1")
-        else:
-            print("Please specify the input format to flat or matrix")
+
+        observation = np.vstack([phy_lte_max_rate, phy_wifi_max_rate, phy_df_rate])
+        if (observation < 0).any():
+            print("[WARNING] some feature returns empty measurement, e.g., -1")
+
         return observation
 
-    def prepare_action(self, actions):
+    def prepare_policy(self, action):
+        """Prepare the network policy for network slicing env
+
+        Args:
+            action (spaces): the action from RL agent
+
+        Returns:
+            json: the network policy
+        """
 
         rbg_size = get_rbg_size(self.config_json['gmasim_config']['LTE']['resource_block_num'])
         rbg_num = self.config_json['gmasim_config']['LTE']['resource_block_num']/rbg_size
-        scaled_actions= np.interp(actions, (0, 1), (0, rbg_num/len(self.config_json['gmasim_config']['slice_list'])))
-        #scaled_actions= np.interp(actions, (0, 1), (0, rbg_num))
+        scaled_action= np.interp(action, (0, 1), (0, rbg_num/len(self.config_json['gmasim_config']['slice_list'])))
+        #scaled_action= np.interp(action, (0, 1), (0, rbg_num))
 
-        # Round the scaled subtracted actions to integers
-        rounded_scaled_actions = np.round(scaled_actions).astype(int)
+        # Round the scaled subtracted action to integers
+        rounded_scaled_action = np.round(scaled_action).astype(int)
 
-        print("action --> " + str(rounded_scaled_actions))
+        print("action --> " + str(rounded_scaled_action))
         action_list = []
 
         for slice_id in range(len(self.config_json['gmasim_config']['slice_list'])):
-            action_list.append({"slice":int(slice_id),"D":int(rounded_scaled_actions[slice_id]),"P":int(0),"S":int(50)})
+            action_list.append({"slice":int(slice_id),"D":int(rounded_scaled_action[slice_id]),"P":int(0),"S":int(50)})
 
         # the unit of the action is resource block group number, not resource block!!!
         # please make sure the sum of the dedicated ("D") and priorititized ("P") resouce block group # is smaller than total resource block group number.
         return action_list
 
     def prepare_reward(self, df_list):
+        """Prepare reward for the network slicing env
+
+        Args:
+            df_list (list[pandas.dataframe]): network stats measurements
+
+        Returns:
+            spaces: reward spaces
+        """
 
         df_phy_lte_max_rate = df_list[0]
         df_phy_wifi_max_rate = df_list[1]
@@ -257,6 +325,15 @@ class network_slicing_adapter(adapter):
         return reward
 
     def slice_df_to_dict(self, df, description):
+        """Convert the dataformat from dataframe to dict.
+
+        Args:
+            df (pandas.dataframe): input dataframe
+            description (str): description for the data
+
+        Returns:
+            dict: output data
+        """
         df_cp = df.copy()
         df_cp['slice_id'] = df_cp['slice_id'].map(lambda u: f'slice_{int(u)}_'+description)
         # Set the index to the 'user' column

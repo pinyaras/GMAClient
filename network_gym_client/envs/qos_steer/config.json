@@ -57,8 +57,7 @@
     "agent": "PPO",
     "policy": "MlpPolicy",
     "train": true,
-    "reward_type" : "wifi_qos_user_num",
-    "input": "matrix"
+    "reward_type" : "wifi_qos_user_num"
   },
 
   "rl_agent_config_option_list":
@@ -66,8 +65,7 @@
     "agent": ["", "PPO", "DDPG"],
     "policy": ["MlpPolicy"],
     "train": [true, false],
-    "reward_type" : ["wifi_qos_user_num"],
-    "input": ["matrix", "flat"]
+    "reward_type" : ["wifi_qos_user_num"]
   },
 
   "gmasim_action_template":{

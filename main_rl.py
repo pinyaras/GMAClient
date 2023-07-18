@@ -5,7 +5,7 @@ import pathlib
 import json
 import sys
 import time
-import network_gym_client
+from network_gym_client import Env as NetworkGymEnv
 from stable_baselines3.common.env_checker import check_env
 
 from stable_baselines3 import A2C, DDPG, PPO, SAC, TD3
@@ -14,26 +14,23 @@ import wandb
 from wandb.integration.sb3 import WandbCallback
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.callbacks import CheckpointCallback
-from network_gym_client.envs.nqos_split.adapter import single_link_policy
-from network_gym_client.envs.nqos_split.adapter import nqos_split_adapter
-from network_gym_client.envs.qos_steer.adapter import qos_steer_adapter
-from network_gym_client.envs.network_slicing.adapter import network_slicing_adapter
+from gymnasium.wrappers import NormalizeObservation
 
-MODEL_SAVE_FREQ = 1000
-LOG_INTERVAL = 10
+#MODEL_SAVE_FREQ = 1000
+#LOG_INTERVAL = 10
 NUM_OF_EVALUATE_EPISODES = 5
 
-checkpoint_callback = CheckpointCallback(
-    save_freq=MODEL_SAVE_FREQ,  # Save the model every 1 episode
-    save_path='./models/',
-    name_prefix='rl_model' # should be passed from the json file.
-)
+#checkpoint_callback = CheckpointCallback(
+#    save_freq=MODEL_SAVE_FREQ,  # Save the model every 1 episode
+#    save_path='./models/',
+#    name_prefix='rl_model' # should be passed from the json file.
+#)
 
 def train(agent, config_json):
 
     num_steps = 0
 
-    #configure the num_steps based on the JSON file
+    #configure the num_steps based on the json file
     if (config_json['gmasim_config']['GMA']['measurement_interval_ms'] + config_json['gmasim_config']['GMA']['measurement_guard_interval_ms']
         == config_json['gmasim_config']['Wi-Fi']['measurement_interval_ms'] + config_json['gmasim_config']['Wi-Fi']['measurement_guard_interval_ms']
         == config_json['gmasim_config']['LTE']['measurement_interval_ms'] + config_json['gmasim_config']['LTE']['measurement_guard_interval_ms']):
@@ -47,7 +44,8 @@ def train(agent, config_json):
         print(config_json['gmasim_config']['LTE']['measurement_guard_interval_ms'])
         sys.exit('[Error!] The value of GMA, Wi-Fi, and LTE measurement_interval_ms + measurement_guard_interval_ms should be the same!')
     
-    model = agent.learn(total_timesteps=num_steps,log_interval=LOG_INTERVAL, callback=checkpoint_callback)
+    #model = agent.learn(total_timesteps=num_steps,log_interval=LOG_INTERVAL, callback=checkpoint_callback)
+    model = agent.learn(total_timesteps=num_steps)
     model.save(config_json['rl_agent_config']['agent'] )
 
     #TODD Terminate the RL agent when the simulation ends.
@@ -55,7 +53,7 @@ def system_default_policy(env, config_json):
 
     num_steps = 0
 
-    #configure the num_steps based on the JSON file
+    #configure the num_steps based on the json file
     if (config_json['gmasim_config']['GMA']['measurement_interval_ms'] + config_json['gmasim_config']['GMA']['measurement_guard_interval_ms']
         == config_json['gmasim_config']['Wi-Fi']['measurement_interval_ms'] + config_json['gmasim_config']['Wi-Fi']['measurement_guard_interval_ms']
         == config_json['gmasim_config']['LTE']['measurement_interval_ms'] + config_json['gmasim_config']['LTE']['measurement_guard_interval_ms']):
@@ -75,13 +73,12 @@ def system_default_policy(env, config_json):
         if done:
             obs = env.reset()
 
-        # take random action, but you can also do something more intelligent
-        # action = my_intelligent_agent_fn(obs) 
-
-        action = np.array([])
+        action = np.array([])#no action from the rl agent
 
         # apply the action
-        obs, reward, done, info = env.step(action)
+        obs, reward, done, done, info = env.step(action)
+
+        print(obs)
 
         if info['terminate_flag']:
             break
@@ -119,24 +116,8 @@ def main():
     config_json = {**common_config_json, **use_case_config_json}
     config_json['gmasim_config']['env'] = args.env
 
-    if args.env == "network_slicing":
-        # for network slicing, the user number is configured using the slice list. Cannot use the argument parser!
-        config_json['gmasim_config']['num_users'] = 0
-
-        for item in config_json['gmasim_config']['slice_list']:
-            config_json['gmasim_config']['num_users'] += item['num_users']
-        if args.num_users != -1:
-            sys.exit("cannot config user number in terminal number for network slicing environment.")
-
-    if args.num_users != -1:
-        config_json['gmasim_config']['num_users'] = args.num_users
-    
-    print("[" + str(config_json['gmasim_config']['num_users']) + "] Number of users selected.")
-
     if args.lte_rb !=-1:
         config_json['gmasim_config']['LTE']['resource_block_num'] = args.lte_rb
-
-
 
     if config_json['rl_agent_config']['agent'] == "" or config_json['rl_agent_config']['agent'] == "system_default":
         # rl agent disabled, use the default policy from the system
@@ -165,18 +146,6 @@ def main():
         # save_code=True,  # optional
     )
 
-    if config_json['session_name'] == 'test':
-        #username = wandb.api_key.split()[0].split("@")[0]
-        username = run.entity
-        print(username)
-        if username == '':
-            print('***[WARNING]*** You are using the default "test" to connect to the server, which may conflict with the simulations launched by other users.')
-            print('***[WARNING]*** Please change the "session_name" attribute in the common_config.json file to your assigned session name. If you do not have one, contact menglei.zhang@intel.com.')
-        else:
-            print('***[WARNING]*** You are using wandb username ['+username+'] as algorithm client id to connect to the server')
-            print('***[WARNING]*** Please change the "session_name" attribute in the common_config.json file to your assigned session name. If you do not have one, contact menglei.zhang@intel.com.')
-            config_json['session_name'] = username
-
     alg_map = {
         'PPO': PPO,
         'DDPG': DDPG,
@@ -184,35 +153,17 @@ def main():
         'TD3': TD3,
         'A2C': A2C,
         'system_default': system_default_policy,
-        'LTE': single_link_policy,
-        'Wi-Fi': single_link_policy
     }
-
-    #model_map = {
-    #    'MlpPolicy': "MlpPolicy",
-    #    'CustomLSTMPolicy': "CustomLSTMPolicy",
-    #}
 
     # Choose the agent
     agent_class = alg_map.get(rl_alg, None)
     if agent_class is None:
         raise ValueError(f"Invalid RL algorithm name: {rl_alg}")
-    #client_id = list(alg_map.keys()).index(rl_alg) + 1
     client_id = args.client_id
     # Create the environment
-    if(args.env == "nqos_split"):
-        env_adapter = nqos_split_adapter(wandb)
-    elif(args.env == "qos_steer"):
-        env_adapter = qos_steer_adapter(wandb)
-    elif(args.env == "network_slicing"):
-        env_adapter = network_slicing_adapter (wandb)
-    else:
-       sys.exit("[" + args.env + "] environment is not implemented.")
-
     print("[" + args.env + "] environment selected.")
-
-    env_adapter.set_config(config_json)
-    env = network_gym_client.make(client_id, env_adapter, config_json) # make a network env using pass client id, adatper and configure file arguements.
+    env = NetworkGymEnv(client_id, wandb, config_json) # make a network env using pass client id, adatper and configure file arguements.
+    normal_obs_env = NormalizeObservation(env)
     # It will check your custom environment and output additional warnings if needed
     # only use this function for debug, 
     # check_env(env)
@@ -222,9 +173,6 @@ def main():
         train_flag = config_json['rl_agent_config']['train']
         #link_type = config_json['rl_agent_config']['link_type']
 
-        if rl_alg == "LTE" or rl_alg == "Wi-Fi" :
-            single_link_policy(env, config_json)
-            return
         # Load the model if eval is True
         if not train_flag:
             # Testing/Evaluation
@@ -232,14 +180,14 @@ def main():
             agent = agent_class.load(path)
             # n_episodes = config_json['rl_agent_config']['timesteps'] / 100
 
-            evaluate(agent, env)
+            evaluate(agent, normal_obs_env)
         else:
             # Train the agent
-            agent = agent_class(config_json['rl_agent_config']['policy'], env, verbose=1, tensorboard_log=f"runs/{run.id}")
+            agent = agent_class(config_json['rl_agent_config']['policy'], normal_obs_env, verbose=1, tensorboard_log=f"runs/{run.id}")
             train(agent, config_json)
     else:
         #use the system_default algorithm...
-        agent_class(env, config_json)
+        agent_class(normal_obs_env, config_json)
         
 def arg_parser():
     parser = argparse.ArgumentParser(description='Network Gym Client')
@@ -247,11 +195,8 @@ def arg_parser():
                         help='Select a environment to start Network Gym Client (nqos_split, qos_steer, network_slicing)')
     parser.add_argument('--client_id', type=int, required=False, default=0,
                         help='Select client id to start simulation')
-    parser.add_argument('--num_users', type=int, required=False, default=-1,
-                        help='Select number of users')
     parser.add_argument('--lte_rb', type=int, required=False, default=-1,
                         help='Select number of LTE Resource Blocks')
-
 
     args = parser.parse_args()
     return args

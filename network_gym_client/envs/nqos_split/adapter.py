@@ -1,4 +1,4 @@
-from network_gym_client.adapter import adapter
+from network_gym_client.adapter import Adapter
 
 import sys
 from gymnasium import spaces
@@ -12,11 +12,18 @@ MAX_DATA_RATE = 100
 MIN_DELAY_MS = 0
 MAX_DELAY_MS = 500
 
+# TODO: update this fuction to custom agent... Do not put it in the adapter!!!
 def single_link_policy(env, config_json):
+    """Move this Function to Custom Agent. Not in the adapter!!!!
+
+    Args:
+        env (_type_): _description_
+        config_json (_type_): _description_
+    """
 
     num_steps = 0
 
-    #configure the num_steps based on the JSON file
+    #configure the num_steps based on the json file
     if (config_json['gmasim_config']['GMA']['measurement_interval_ms'] + config_json['gmasim_config']['GMA']['measurement_guard_interval_ms']
         == config_json['gmasim_config']['Wi-Fi']['measurement_interval_ms'] + config_json['gmasim_config']['Wi-Fi']['measurement_guard_interval_ms']
         == config_json['gmasim_config']['LTE']['measurement_interval_ms'] + config_json['gmasim_config']['LTE']['measurement_guard_interval_ms']):
@@ -44,7 +51,7 @@ def single_link_policy(env, config_json):
 
         link_type = config_json['rl_agent_config']['agent']
         user_number = config_json['gmasim_config']['num_users']
-        action_list = []
+        policy = []
 
         if link_type == "Wi-Fi":
             wifi_ratio = 32
@@ -56,19 +63,34 @@ def single_link_policy(env, config_json):
 
         for user_id in range(user_number):
 
-            action_list.append({"cid":"Wi-Fi","user":int(user_id),"value":int(wifi_ratio)})#config wifi ratio for user: user_id
-            action_list.append({"cid":"LTE","user":int(user_id),"value":int(lte_ratio)})#config lte ratio for user: user_id
+            policy.append({"cid":"Wi-Fi","user":int(user_id),"value":int(wifi_ratio)})#config wifi ratio for user: user_id
+            policy.append({"cid":"LTE","user":int(user_id),"value":int(lte_ratio)})#config lte ratio for user: user_id
 
         # apply the action
-        obs, reward, done, info = env.step(action_list)
+        obs, reward, done, info = env.step(policy)
 
-class nqos_split_adapter(adapter):
+class Adapter(Adapter):
+    """Nqos split env adapter
+
+    Args:
+        Adapter (Adapter): base class
+    """
     def __init__(self, wandb):
+        """Initialize the adapter
+
+        Args:
+            wandb (wandb): WanDB database
+        """
         self.env = "nqos_split"
         self.action_max_value = 32
         super().__init__(wandb)
 
-    def get_action_space(self): 
+    def get_action_space(self):
+        """Get action space for the nqos split env
+
+        Returns:
+            spaces: action spaces
+        """
         if (self.env == self.config_json['gmasim_config']['env'] and self.config_json['rl_agent_config']['agent'] != "custom" and "GMA" ):
             return spaces.Box(low=0, high=1,
                                             shape=(int(self.config_json['gmasim_config']['num_users']),), dtype=np.float32)
@@ -81,11 +103,32 @@ class nqos_split_adapter(adapter):
             sys.exit("[ERROR] wrong environment or RL agent.")
 
     #consistent with the prepare_observation function.
-    # change this fucntion to get_obs_space..
-    def get_num_of_observation_features(self):
-        return 3
+    def get_observation_space(self):
+        """Get the observation space for nqos split env
+
+        Returns:
+            spaces: observation spaces
+        """
+        num_features = 3
+        num_users = int(self.config_json['gmasim_config']['num_users'])
+        obs_space = None
+
+        obs_space =  spaces.Box(low=0, high=1000,
+                                            shape=(num_features,num_users), dtype=np.float32)
+
+        return obs_space
     
     def prepare_observation(self, df_list):
+        """Prepare observation for nqos split env.
+
+        This function should be consistent with the get_observation_space.
+
+        Args:
+            df_list (list[pandas.dataframe]): network stats measurement
+
+        Returns:
+            spaces: observation spaces
+        """
 
         df_phy_lte_max_rate = df_list[0]
         df_phy_wifi_max_rate = df_list[1]
@@ -158,68 +201,65 @@ class nqos_split_adapter(adapter):
             phy_df_rate = emptyFeatureArray
 
         # observation = np.ones((3, 4))
-        if self.config_json["rl_agent_config"]['input'] == "flat":
-            observation = np.concatenate([phy_lte_max_rate, phy_wifi_max_rate, phy_df_rate])
-            if(np.min(observation) < 0):
-                print("[WARNING] some feature returns empty measurement, e.g., -1")
-        elif self.config_json["rl_agent_config"]['input'] == "matrix":
-            observation = np.vstack([phy_lte_max_rate, phy_wifi_max_rate, phy_df_rate])
-            if (observation < 0).any():
-                print("[WARNING] some feature returns empty measurement, e.g., -1")
-        else:
-            print("Please specify the input format to flat or matrix")
+
+        observation = np.vstack([phy_lte_max_rate, phy_wifi_max_rate, phy_df_rate])
+        if (observation < 0).any():
+            print("[WARNING] some feature returns empty measurement, e.g., -1")
+
         
         # add a check that the size of observation equals the prepared observation space.
         return observation
 
-    def prepare_action(self, actions):
+    def prepare_policy(self, action):
+        """Prepare policy for the nqos split env
 
-        if self.config_json['rl_agent_config']['agent']  != "custom": 
-            # Subtract 1 from the actions array
-            subtracted_actions = 1- actions 
-            # print(subtracted_actions)
+        Args:
+            action (spaces): action from the RL agent
 
-            # Stack the subtracted and original actions arrays
-            stacked_actions = np.vstack((actions, subtracted_actions))
+        Returns:
+            json: network policy
+        """
 
-            # Scale the subtracted actions to the range [0, self.action_max_value]
-            scaled_stacked_actions= np.interp(stacked_actions, (0, 1), (0, self.action_max_value))
-        #RL action for CleanRL
-        else:
-            opposite_actions = -1* actions
-            # print(actions)
-            # print(opposite_actions)
-            # Stack the subtracted and original actions arrays
-            stacked_actions = np.vstack((actions, opposite_actions))
+        # Subtract 1 from the action array
+        subtracted_action = 1- action 
+        # print(subtracted_action)
 
-            # Scale the subtracted actions to the range [0, self.action_max_value]
-            scaled_stacked_actions= np.interp(stacked_actions, (-1, 1), (0, self.action_max_value))
+        # Stack the subtracted and original action arrays
+        stacked_action = np.vstack((action, subtracted_action))
+
+        # Scale the subtracted action to the range [0, self.action_max_value]
+        scaled_stacked_action= np.interp(stacked_action, (0, 1), (0, self.action_max_value))
 
 
-        # Round the scaled subtracted actions to integers
-        rounded_scaled_stacked_actions = np.round(scaled_stacked_actions).astype(int)
+        # Round the scaled subtracted action to integers
+        rounded_scaled_stacked_action = np.round(scaled_stacked_action).astype(int)
 
-        print("action --> " + str(rounded_scaled_stacked_actions))
-        action_list = []
+        print("action --> " + str(rounded_scaled_stacked_action))
+        policy = []
 
         for user_id in range(self.config_json['gmasim_config']['num_users']):
             #wifi_ratio + lte_ratio = step size == self.action_max_value
             # wifi_ratio = 14 #place holder
             # lte_ratio = 18 #place holder
-            action_list.append({"cid":"Wi-Fi","user":int(user_id),"value":int(rounded_scaled_stacked_actions[0][user_id])})#config wifi ratio for user: user_id
-            action_list.append({"cid":"LTE","user":int(user_id),"value":int(rounded_scaled_stacked_actions[1][user_id])})#config lte ratio for user: user_id
+            policy.append({"cid":"Wi-Fi","user":int(user_id),"value":int(rounded_scaled_stacked_action[0][user_id])})#config wifi ratio for user: user_id
+            policy.append({"cid":"LTE","user":int(user_id),"value":int(rounded_scaled_stacked_action[1][user_id])})#config lte ratio for user: user_id
 
-            #wifistr = f'UE%d_Wi-Fi_ACTION' % (user_id)
-            #ltestr = f'UE%d_LTE_ACTION' % (user_id)
-            #df_dict = {wifistr:rounded_scaled_stacked_actions[0][user_id], ltestr:rounded_scaled_stacked_actions[1][user_id]}
-
-            #if not self.wandb_log_info:
-            #    self.wandb_log_info = df_dict
-            #else:
-            #    self.wandb_log_info.update(df_dict)
-        return action_list
+        return policy
 
     def process_util(self, df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id):
+        """Calculate the utilization
+
+        Args:
+            df_rate (pandas.dataframe): data rate per user
+            df_load (pandas.dataframe): input traffic load per user
+            df_phy_wifi_max_rate (pandas.dataframe): Wi-Fi max rate per user
+            df_phy_lte_max_rate (pandas.dataframe): LTE max rate per user
+            df_ap_id (pandas.dataframe): AP ID per user
+
+        Returns:
+            pandas.dataframe: utilization for Wi-Fi
+            pandas.dataframe: utilization for LTE
+        """
 
         wifi_list, lte_list = self.sta_count(df_ap_id)
 
@@ -277,6 +317,15 @@ class nqos_split_adapter(adapter):
         return est_util_list, est_util_cell0
 
     def sta_count(self,df ):
+        """Count the number of stations per AP
+
+        Args:
+            df (dataframe): user list
+
+        Returns:
+            list: Wi-Fi user list
+            list: LTE user list
+        """
         wifi_df = df.loc[df['cid'] == 'Wi-Fi']
         wifi_df['value'] = wifi_df['value'].astype(int)
 
@@ -304,6 +353,14 @@ class nqos_split_adapter(adapter):
         return wifi_list,lte_list
 
     def user_list(self, x):
+        """unique user list
+
+        Args:
+            x (list): user list
+
+        Returns:
+            list: unique users in the user list
+        """
         return list(x.unique())
 
     def estimate_util(self, user_list, max_rate_df, rate_df, load_df):
@@ -362,6 +419,15 @@ class nqos_split_adapter(adapter):
         return est_util_rate, num_users
 
     def df_to_dict(self, df, description):
+        """Dataframe to dict covertor
+
+        Args:
+            df (pandas.dataframe): data
+            description (str): description for the data
+
+        Returns:
+            dict: data dict
+        """
         df_cp = df.copy()
         df_cp['user'] = df_cp['user'].map(lambda u: f'UE{u}_'+description)
         # Set the index to the 'user' column
@@ -371,6 +437,15 @@ class nqos_split_adapter(adapter):
         return data
 
     def df_lte_to_dict(self, df, description):
+        """LTE dataframe to dict covertor
+
+        Args:
+            df (pandas.dataframe): LTE data
+            description (str): description for the data
+
+        Returns:
+            dict: data dict
+        """
         df_cp = df.copy()
         df_cp['user'] = df_cp['user'].map(lambda u: f'UE{u}_'+description)
         # Set the index to the 'user' column
@@ -382,6 +457,15 @@ class nqos_split_adapter(adapter):
         return data
 
     def df_split_ratio_to_dict(self, df, cid):
+        """Split ratio dataframe to dict convertor
+
+        Args:
+            df (pandas.dataframe): data
+            cid (pandas.dataframe): connection ID
+
+        Returns:
+            dict: data dict
+        """
         df_cp = df.copy()
         df_cp = df_cp[df_cp['cid'] == cid].reset_index(drop=True)
         df_cp['user'] = df_cp['user'].map(lambda u: f'UE{u}_{cid}_TSU')
@@ -392,6 +476,15 @@ class nqos_split_adapter(adapter):
         return data
 
     def df_wifi_to_dict(self, df, description):
+        """Wi-Fi dataframe to dict
+
+        Args:
+            df (pandas.dataframe): input data for Wi-Fi
+            description (str): description
+
+        Returns:
+            dict: data dict
+        """
         df_cp = df.copy()
         df_cp['user'] = df_cp['user'].map(lambda u: f'UE{u}_'+description)
         # Set the index to the 'user' column
@@ -403,6 +496,14 @@ class nqos_split_adapter(adapter):
         return data
 
     def prepare_reward(self, df_list):
+        """Prepare reward for the nqos split env
+
+        Args:
+            df_list (list[pandas.dataframe]): network stats
+
+        Returns:
+            spaces: reward spaces
+        """
 
         df_load = df_list[2]
         df_rate = df_list[3]
@@ -508,8 +609,14 @@ class nqos_split_adapter(adapter):
         return alpha_balanced_metric
 
     def rescale_datarate(self,data_rate):
-        """
-        Rescales a given reward to the range [-10, 10].
+        """Rescales a given reward to the range [-10, 10].
+
+
+        Args:
+            data_rate (pandas.dataframe): data rater per user
+
+        Returns:
+            double : resclaed reward
         """
         # we should not assume the max throughput is known!!
         rescaled_reward = ((data_rate - MIN_DATA_RATE) / (MAX_DATA_RATE - MIN_DATA_RATE)) * 20 - 10
@@ -518,6 +625,14 @@ class nqos_split_adapter(adapter):
 
 
     def calculate_delay_diff(self, df_owd):
+        """Calculate the delay difference of two links
+
+        Args:
+            df_owd (pandas.dataframe): one-way delay measurements
+
+        Returns:
+            double: delay difference
+        """
 
         # can you add a check what if Wi-Fi or LTE link does not have measurement....
         
@@ -536,14 +651,16 @@ class nqos_split_adapter(adapter):
 
     #I don't like this function...
     def delay_to_scale(self, data):
-        """
-        Rescale the action from [low, high] to [-1, 1]
-        (no need for symmetric action space)
+        """Rescale the action from [low, high] to [-1, 1].(no need for symmetric action space)
 
-        :param action_space: (gym.spaces.box.Box)
-        :param action: (np.ndarray)
-        :return: (np.ndarray)
+        Args:
+            data (numpy.ndarray): delay
+
+        Returns:
+            numpy.ndarray: scaled delay
         """
+        
+
         # low, high = 0,220
         # return -10*(2.0 * ((data - low) / (high - low)) - 1.0)
         low, high = MIN_DELAY_MS, MAX_DELAY_MS

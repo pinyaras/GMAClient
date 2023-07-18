@@ -138,7 +138,7 @@ python3 main_rl.py --env=[ENV]
 ┗ 📂 network_gym_client
   ┣ 📜 adapter.py
   ┣ 📜 common_config.json
-  ┣ 📜 client.py
+  ┣ 📜 env.py
   ┣ 📜 northbound_interface.py (➡️ network_gym_server and network_gym_env)
   ┗ 📂 envs
     ┗ 📂 [ENV_NAME]
@@ -155,13 +155,13 @@ python3 main_rl.py --env=[ENV]
 
 from stable_baselines3 import PPO
 import network_gym_client
-from network_gym_client.envs.nqos_split.adapter import nqos_split_adapter
+from network_gym_client.envs.nqos_split.adapter import NqosSplitAdapter
 
 ...
 # training
 # client_id is a terminal argument, default = 0.
 # config_json includes the common_config.json and config.json.
-env = network_gym_client.make(client_id, nqos_split_adapter, config_json) # make a network env using pass client id, adatper and configure file arguements.
+env = network_gym_client.make(client_id, NqosSplitAdapter, config_json) # make a network env using pass client id, adatper and configure file arguements.
 model = PPO("MlpPolicy", env, verbose=1) # you can change the env to your deployment environment when the model is trained.
 model.learn(total_timesteps=10_000)
 ...
@@ -244,8 +244,7 @@ model.learn(total_timesteps=10_000)
     "agent": "PPO",
     "policy": "MlpPolicy",
     "train": true,
-    "reward_type" : "delay",
-    "input": "matrix"
+    "reward_type" : "delay"
   },
 
   "rl_agent_config_option_list"://do not change this list, it provides the available inputs for the rl_agent_config
@@ -253,8 +252,7 @@ model.learn(total_timesteps=10_000)
     "agent": ["", "PPO", "DDPG"],// set to "" will disable agent, i.e., use the system's default algorithm for offline data collection
     "policy": ["MlpPolicy"],
     "train": [true, false],//set to true to train model, set to false to test pretrained model.
-    "reward_type" : ["delay", "throughput"],
-    "input": ["matrix", "flat"]//set the input type for observations
+    "reward_type" : ["delay", "throughput"]
   },
 
   "gmasim_action_template":{//do not change

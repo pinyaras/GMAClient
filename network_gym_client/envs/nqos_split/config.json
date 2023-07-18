@@ -48,11 +48,10 @@
       },
 
   "rl_agent_config":{
-    "agent": "PPO",
+    "agent": "DDPG",
     "policy": "MlpPolicy",
     "train": true,
-    "reward_type" : "delay",
-    "input": "matrix"
+    "reward_type" : "delay"
   },
 
   "rl_agent_config_option_list":
@@ -60,8 +59,7 @@
     "agent": ["", "PPO", "DDPG"],
     "policy": ["MlpPolicy"],
     "train": [true, false],
-    "reward_type" : ["delay", "throughput"],
-    "input": ["matrix", "flat"]
+    "reward_type" : ["delay", "throughput"]
   },
 
   "gmasim_action_template":{

@@ -1,16 +1,31 @@
-from network_gym_client.adapter import adapter
+from network_gym_client.adapter import Adapter
 import sys
 from gymnasium import spaces
 import numpy as np
 
 
-class qos_steer_adapter(adapter):
+class Adapter(Adapter):
+    """Qos steer environment adapter class
+
+    Args:
+        Adapter (Adapter): base class
+    """
     def __init__(self, wandb):
+        """Initialize adapter
+
+        Args:
+            wandb (wandb): WanDB database
+        """
         self.env = "qos_steer"
         self.action_max_value = 1
         super().__init__(wandb)
 
     def get_action_space (self):
+        """Get action space for qos steer env
+
+        Returns:
+            spaces: action spaces
+        """
         if (self.env == self.config_json['gmasim_config']['env']):
             #self.action_space = spaces.Box(low=0, high=1,
             #                                shape=(self.num_users,), dtype=np.uint8)
@@ -22,10 +37,29 @@ class qos_steer_adapter(adapter):
             sys.exit("[ERROR] wrong environment or RL agent.")
 
     #consistent with the prepare_observation function.
-    def get_num_of_observation_features(self):
-        return 3
-    
+    def get_observation_space(self):
+        """Get observation space for qos steer env
+
+        Returns:
+            spaces: observation spaces
+        """
+        num_features = 3
+        num_users = int(self.config_json['gmasim_config']['num_users'])
+        obs_space = None
+
+        obs_space =  spaces.Box(low=0, high=1000,
+                                            shape=(num_features,num_users), dtype=np.float32)
+        return obs_space
+
     def prepare_observation(self, df_list):
+        """Prepare observation for qos steer env
+
+        Args:
+            df_list (list[pandas.dataframe]): network stats measurement
+
+        Returns:
+            spaces: observation spaces
+        """
         
         df_phy_lte_max_rate = df_list[0]
         df_phy_wifi_max_rate = df_list[1]
@@ -94,66 +128,58 @@ class qos_steer_adapter(adapter):
             phy_df_rate = emptyFeatureArray
 
         # observation = np.ones((3, 4))
-        if self.config_json["rl_agent_config"]['input'] == "flat":
-            observation = np.concatenate([phy_lte_max_rate, phy_wifi_max_rate, phy_df_rate])
-            if(np.min(observation) < 0):
-                print("[WARNING] some feature returns empty measurement, e.g., -1")
-        elif self.config_json["rl_agent_config"]['input'] == "matrix":
-            observation = np.vstack([phy_lte_max_rate, phy_wifi_max_rate, phy_df_rate])
-            if (observation < 0).any():
-                print("[WARNING] some feature returns empty measurement, e.g., -1")
-        else:
-            print("Please specify the input format to flat or matrix")
+
+        observation = np.vstack([phy_lte_max_rate, phy_wifi_max_rate, phy_df_rate])
+        if (observation < 0).any():
+            print("[WARNING] some feature returns empty measurement, e.g., -1")
+
         return observation
 
-    def prepare_action(self, actions):
+    def prepare_policy(self, action):
+        """Prepare network policy for qos steer env.
 
-        if self.config_json['rl_agent_config']['agent']  != "custom": 
-            # Subtract 1 from the actions array
-            subtracted_actions = 1- actions 
-            # print(subtracted_actions)
+        Args:
+            action (spaces): action from RL agent
 
-            # Stack the subtracted and original actions arrays
-            stacked_actions = np.vstack((actions, subtracted_actions))
+        Returns:
+            json: network policy
+        """
 
-            # Scale the subtracted actions to the range [0, self.action_max_value]
-            scaled_stacked_actions= np.interp(stacked_actions, (0, 1), (0, self.action_max_value))
-        #RL action for CleanRL
-        else:
-            opposite_actions = -1* actions
-            # print(actions)
-            # print(opposite_actions)
-            # Stack the subtracted and original actions arrays
-            stacked_actions = np.vstack((actions, opposite_actions))
+        # Subtract 1 from the action array
+        subtracted_action = 1- action 
+        # print(subtracted_action)
 
-            # Scale the subtracted actions to the range [0, self.action_max_value]
-            scaled_stacked_actions= np.interp(stacked_actions, (-1, 1), (0, self.action_max_value))
+        # Stack the subtracted and original action arrays
+        stacked_action = np.vstack((action, subtracted_action))
 
+        # Scale the subtracted action to the range [0, self.action_max_value]
+        scaled_stacked_action= np.interp(stacked_action, (0, 1), (0, self.action_max_value))
 
-        # Round the scaled subtracted actions to integers
-        rounded_scaled_stacked_actions = np.round(scaled_stacked_actions).astype(int)
+        # Round the scaled subtracted action to integers
+        rounded_scaled_stacked_action = np.round(scaled_stacked_action).astype(int)
 
-        print("action --> " + str(rounded_scaled_stacked_actions))
-        action_list = []
+        print("action --> " + str(rounded_scaled_stacked_action))
+        policy = []
 
         for user_id in range(self.config_json['gmasim_config']['num_users']):
             #wifi_ratio + lte_ratio = step size == self.action_max_value
             # wifi_ratio = 14 #place holder
             # lte_ratio = 18 #place holder
-            action_list.append({"cid":"Wi-Fi","user":int(user_id),"value":int(rounded_scaled_stacked_actions[0][user_id])})#config wifi ratio for user: user_id
-            action_list.append({"cid":"LTE","user":int(user_id),"value":int(rounded_scaled_stacked_actions[1][user_id])})#config lte ratio for user: user_id
+            policy.append({"cid":"Wi-Fi","user":int(user_id),"value":int(rounded_scaled_stacked_action[0][user_id])})#config wifi ratio for user: user_id
+            policy.append({"cid":"LTE","user":int(user_id),"value":int(rounded_scaled_stacked_action[1][user_id])})#config lte ratio for user: user_id
 
-            #wifistr = f'UE%d_Wi-Fi_ACTION' % (user_id)
-            #ltestr = f'UE%d_LTE_ACTION' % (user_id)
-            #df_dict = {wifistr:rounded_scaled_stacked_actions[0][user_id], ltestr:rounded_scaled_stacked_actions[1][user_id]}
-
-            #if not self.wandb_log_info:
-            #    self.wandb_log_info = df_dict
-            #else:
-            #    self.wandb_log_info.update(df_dict)
-        return action_list
+        return policy
 
     def df_split_ratio_to_dict(self, df, cid):
+        """Convert dataframe split ratio to dict format
+
+        Args:
+            df (pandas.dataframe): split ratio dataframe
+            cid (int): connection ID
+
+        Returns:
+            dict: split ratio dict
+        """
         df_cp = df.copy()
         df_cp = df_cp[df_cp['cid'] == cid].reset_index(drop=True)
         df_cp['user'] = df_cp['user'].map(lambda u: f'UE{u}_{cid}_TSU')
@@ -164,6 +190,15 @@ class qos_steer_adapter(adapter):
         return data
 
     def df_wifi_to_dict(self, df, description):
+        """Covert Wi-Fi measurement from dataframe to dict
+
+        Args:
+            df (pandas.dataframe): network stats for Wi-Fi
+            description (str): description for the data
+
+        Returns:
+            dict: coverted data
+        """
         df_cp = df.copy()
         df_cp['user'] = df_cp['user'].map(lambda u: f'UE{u}_'+description)
         # Set the index to the 'user' column
@@ -175,6 +210,15 @@ class qos_steer_adapter(adapter):
         return data
 
     def df_lte_to_dict(self, df, description):
+        """Covert LTE measurement from dataframe to dict
+
+        Args:
+            df (pandas.dataframe): network stats for LTE
+            description (str): description for the data
+
+        Returns:
+            dict: coverted data
+        """
         df_cp = df.copy()
         df_cp['user'] = df_cp['user'].map(lambda u: f'UE{u}_'+description)
         # Set the index to the 'user' column
@@ -186,6 +230,14 @@ class qos_steer_adapter(adapter):
         return data
 
     def prepare_reward(self, df_list):
+        """Prepare reward for qos steer env
+
+        Args:
+            df_list (list[pandas.dataframe]): network stats measurement
+
+        Returns:
+            spaces: reward space
+        """
 
         df_load = df_list[2]
         df_rate = df_list[3]
@@ -253,6 +305,14 @@ class qos_steer_adapter(adapter):
         return reward
 
     def calculate_wifi_qos_user_num(self, qos_rate):
+        """Calculate the number of QoS users over Wi-Fi
+
+        Args:
+            qos_rate (pandas.dataframe): qos data rate per user
+
+        Returns:
+            double: reward
+        """
         #print(qos_rate)
         reward = np.sum(qos_rate>0.1) #we assume the min qos rate is 0.1 mbps
         return reward

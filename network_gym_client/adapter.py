@@ -1,17 +1,17 @@
 import sys
 
-class adapter:
-    """base class for data format adapter.
+class Adapter:
+    """The base class for environment data format adapter.
 
     This class is an data format "adapter" between the gymnasium environment and network_gym environment.
-    Adapter transforms the network stats measurements to obs and reward.
-    It also transforms the action to a policy that can be applied to the network.
+    It transforms the network stats measurements (json) to obs and reward (Spaces).
+    It also transforms the action (Spaces) to a policy (json) that can be applied to the network.
     """
     def __init__(self, wandb):
-        """Initialize.
+        """Initialize Adapter
 
         Args:
-            wandb (database): WanDB database
+            wandb (wandb): wandb Database
         """
         self.config_json = None
         self.wandb_log_info = None
@@ -21,7 +21,7 @@ class adapter:
         """Set the configuration file.
 
         Args:
-            config_json (JSON): the configuration file
+            config_json (json): the configuration file
         """
         if config_json['gmasim_config']['env'] != self.env:
             sys.exit("[ERROR] wrong environment helper. config file environment: " + str(config_json['gmasim_config']['env']) + " helper environment: " + str(self.env))
@@ -43,7 +43,7 @@ class adapter:
             description (string): a descritption for the data
 
         Returns:
-            dictionary: converted data with dictionary format
+            dict : converted data with dictionary format
         """
         df_cp = df.copy()
         df_cp['user'] = df_cp['user'].map(lambda u: f'UE{u}_'+description)
