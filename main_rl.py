@@ -158,7 +158,8 @@ def main():
         # name=rl_alg + "_" + str(config_json['gmasim_config']['num_users']) + "_LTE_" +  str(config_json['gmasim_config']['LTE']['resource_block_num']),
         #name=rl_alg + "_" + str(config_json['gmasim_config']['num_users']) + "_" +  str(config_json['gmasim_config']['LTE']['resource_block_num']),
         name=rl_alg,
-        project="netai-gym",
+        # project="netai-gym",
+        project="gmasim-gym",
         config=config,
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         # save_code=True,  # optional

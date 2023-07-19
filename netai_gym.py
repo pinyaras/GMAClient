@@ -139,7 +139,7 @@ class NetAIEnv(gym.Env):
         if terminate_flag == True:
             self.first_episode = True
             self.current_ep = 0
-            quit()
+            # quit()
             #simulation already ended, connect again in the reset function to start a new one...
             return [], 0, [], [], terminate_flag
         #while self.enable_rl_agent and not ok_flag:
@@ -160,7 +160,7 @@ class NetAIEnv(gym.Env):
         df_phy_lte_rb_usage = df_list[9]
         df_delay_violation = df_list[10]
         #print(df_phy_lte_slice_id)
-        #print(df_phy_lte_rb_usage)
+        # print(df_phy_lte_rb_usage)
         #print(df_delay_violation)
 
         observation = self.use_case_helper.prepare_observation(df_list)

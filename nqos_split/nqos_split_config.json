@@ -2,7 +2,7 @@
   "gmasim_config":{
       "type": "gmasim-start",
       "use_case": "nqos_split",
-      "simulation_time_s": 5,
+      "simulation_time_s": 200,
       "random_run": 2,
       "downlink": true,
       "max_wait_time_for_action_ms": -1,
@@ -48,16 +48,16 @@
       },
 
   "rl_agent_config":{
-    "agent": "PPO",
+    "agent": "",
     "policy": "MlpPolicy",
-    "train": true,
+    "train": false,
     "reward_type" : "delay",
     "input": "matrix"
   },
 
   "rl_agent_config_option_list":
   {
-    "agent": ["", "PPO", "DDPG"],
+    "agent": ["", "PPO", "DDPG", "custom"],
     "policy": ["MlpPolicy"],
     "train": [true, false],
     "reward_type" : ["delay", "throughput"],
