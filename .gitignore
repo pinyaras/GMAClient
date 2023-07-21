@@ -1,6 +1,10 @@
-netai_gym_open_api.py
 /wandb
 /runs
 /models
 /__pycache__
+/network_venv
+/sphinx_venv
 *.pyc
+network_gym_accounts.csv
+*northbound_interface.py
+/docs/_build

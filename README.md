@@ -1,21 +1,77 @@
-# NetAI Client 
-NetAI Client is a python-based client for NetAI Gym: a ns3-based Data-Driven AI/ML-enabled Multi-Access Network Simulator. In this release, NetAI Client supports three use cases nqos_split, qos_steer, and network slicing. It also includes the SOTA RL algorithms from the [stable-baselines3](https://stable-baselines3.readthedocs.io/en/master/), e.g., PPO, DDPG, SAC, TD3, and A2C.
+# Network Gym Client 
+Network Gym Client is a python-based client software for Network Gym: AI/ML-enabled Multi-Access Network Simulation-as-a-Service Framework. The Client connects to the Server/Environment remotely to train the agent.
+ At present, Network Gym Client supports three environments: nqos_split, qos_steer, and network slicing. It also includes the SOTA RL algorithms from the [stable-baselines3](https://stable-baselines3.readthedocs.io/en/master/), e.g., PPO, DDPG, SAC, TD3, and A2C.
+
+
+```mermaid
+flowchart TB
+
+subgraph network_gym_server
+northbound <--> southbound[[southbound_interface]]
+end
+
+subgraph network_gym_env
+southbound_interface
+simulator
+emulator
+testbed 
+end
+
+agent <--> gymnasium.env
+
+gymnasium.env -- action --> adapter
+adapter -- obs,rewards --> gymnasium.env
+
+subgraph network_gym_client
+gymnasium.env
+adapter
+northbound_interface[[northbound_interface]]
+end
+
+
+
+adapter --policy--> northbound_interface
+northbound_interface --network_stats--> adapter
+
+
+northbound_interface --env_config,policy--> northbound[[northbound_interface]]
+northbound --network_stats--> northbound_interface
+
+
+
+
+southbound --env_config,policy--> southbound_interface[[southbound_interface]]
+southbound_interface --network_stats--> southbound
+
+```
+
+## Class Structure
+
+This repository includes the agent and network_gym_client components. The network_gym_server and network_gym_env components are hosted in our vLab machines. After cloning this repository, users can launch the network_gym_client to remotely connects to the newtork_gym_server and newtork_gym_env via the northbound interface.
+
+- main()
+  - network_gym_client
+    - gymnasium.env: *a customized gymnasium environment that communicates with stable-baselines3 agent.*
+    - adapter: *transform the network stats measurements to obs and reward and translate action to policy that can be applied to the network.*
+    - northbound_interface: *communicates network confiugration, network stats and policy between client and network_gym server/environment.*
+  - agent: the agents from statble-baselines3.
+
 
 ## ⌛ Installation:
 - Clone this repo.
 ```
 git clone https://github.com/pinyaras/GMAClient.git
 ```
-- Download the [netai_gym_open_api](https://github.com/IntelLabs/gma/blob/master/netai_gym/netai_gym_open_api.py) library.
+- Download the [northbound_interface](https://github.com/IntelLabs/gma/blob/master/network_gym_client/northbound_interface.py) library.
 
 ```
-cd GMAClient
-wget https://raw.githubusercontent.com/IntelLabs/gma/master/netai_gym/netai_gym_open_api.py
+cd GMAClient/network_gym_client/
+wget https://raw.githubusercontent.com/IntelLabs/gma/master/network_gym_client/northbound_interface.py
 ```
 - (Optional) Create a new virtual python environment.
 ```
-python3 -m venv netai-venv
-source netai-venv/bin/activate
+python3 -m venv network_venv
+source network_venv/bin/activate
 ```
 - Install Required Libraries.
 ```
@@ -54,20 +110,20 @@ Host mlwins
   LocalForward 8088 localhost:8088
 ```
 
-## 🚀 Start NetAI Algorithm Client:
+## 🚀 Start Network Gym Client:
 
-- Update the common configuration file [common_config.json](common_config.json). Go to the ⚙️ Configurable File Format Section for more details.
+- Update the common configuration file [common_config.json](network_gym_client/common_config.json). Go to the ⚙️ Configurable File Format Section for more details.
 
-- Update the use case depend configuration file [qos_steer_config.json](qos_steer/qos_steer_config.json) or [nqos_split_config.json](nqos_split/nqos_split_config.json) or [network_slicint.json](network_slicing/network_slicing_config.json)
+- Update the environment depend configuration file [network_gym_client/envs/qos_steer/config.json](network_gym_client/envs/qos_steer/config.json) or [network_gym_client/envs/nqos_split/config.json](network_gym_client/envs/nqos_split/config.json) or [network_gym_client/envs/network_slicing/config.json](network_gym_client/envs/network_slicing/config.json)
 
 
 - Start the client using the following command, and visualize the output in WanDB website.
 ```
-python3 main_rl.py --use_case=[USE_CASE]
+python3 main_rl.py --env=[ENV]
 ```
-- where [USE_CASE] has 3 options: `nqso_split`, `qos_steer` and `network_slicing`. If the python program stops after sending out the start request as shown in the following, check if the port fowarding is broken.
+- where [ENV] has 3 options: `nqso_split`, `qos_steer` and `network_slicing`. If the python program stops after sending out the start request as shown in the following, check if the port fowarding is broken.
 ```
-[qos_steer] use case selected.
+[qos_steer] environment selected.
 [30] Number of users selected.
 ...
 [YOUR_ALGORITHM_NAME]-0 started
@@ -77,36 +133,42 @@ python3 main_rl.py --use_case=[USE_CASE]
 ## 📁 File Structure:
 
 ```
-📦NetAIClient
-┣ 📜main_rl.py (➡️stable-baselines3, ➡️WanDB)
-┣ 📜common_config.json
-┣ 📜netai_gym.py
-┣ 📜netai_gym_open_api (➡️netai-simulator)
-┗ 📂[USE_CASE]
-  ┣ 📜[USE_CASE]_config.json
-  ┗ 📜[USE_CASE]_helper.py
+📦 Network_Gym_Client
+┣ 📜 main_rl.py (➡️ network_gym_client, ➡️ stable-baselines3, ➡️ WanDB)
+┗ 📂 network_gym_client
+  ┣ 📜 adapter.py
+  ┣ 📜 common_config.json
+  ┣ 📜 env.py
+  ┣ 📜 northbound_interface.py (➡️ network_gym_server and network_gym_env)
+  ┗ 📂 envs
+    ┗ 📂 [ENV_NAME]
+      ┣ 📜 adapter.py
+      ┗ 📜 config.json
 ```
 
-- Excuting the 📜 main_rl.py file will start a new simulation. The use case must be selected using the `--use_case` command. The 📜common_config.json is used in all use cases. Depends on the selected use cases, th associated 📜[USE_CASE]_config.json and 📜[USE_CASE]_helper.py will be loaded. The 📜[USE_CASE]_helper.py helps preparing observations, rewards and actions for the selected use case.
-- The 📜 main_rl.py create a NetAI Gym environment (imported from 📜netai_gym.py), which remotely connects to the ns-3 based NetAI Simualtor (hosted in vLab machine) using the 📜netai_gym_open_api. 📜 main_rl.py also creates a reinforcement learning model (imported from ➡️stable-baselines3) to interact with the NetAI Gym environment. The results are synced to ➡️WanDB database. We provide the following code snippet from the 📜 main_rl.py as an example. After the model is trained using the NetAI Gym's environment, it can be easily deployed in any environment.
-- This file strcuture isolates the function and variables associated to each use case. Therefore, a new use case can be added by adding ad new [USE_CASE] folder with 📜[USE_CASE]_config.json and 📜[USE_CASE]_helper.py files. 
+- Excuting the 📜 main_rl.py file will start a new simulation. The environment must be selected using the `--env` command. The 📜 common_config.json is used in all environments. Depends on the selected environments, the 📜 config.json and 📜 adapter.py in the [ENV_NAME] folder will be loaded. The 📜 adapter.py helps preparing observations, rewards and actions for the selected environment.
+- The 📜 main_rl.py create a Network Gym environment, which remotely connects to the ns-3 based Network Gym Simualtor (hosted in vLab machine) using the 📜 northbound_interface. 📜 main_rl.py also creates a reinforcement learning model (imported from ➡️ stable-baselines3) to interact with the Network Gym environment. The results are synced to ➡️ WanDB database. We provide the following code snippet from the 📜 main_rl.py as an example. After the machine learning model is trained using the Network Gym's environment, it can be easily deployed in any environment.
+- New environment can be added in the future by adding ad new [ENV_NAME] folder with 📜 config.json and 📜 adapter.py files. 
 
 ```python
+#example code for nqos_split environment using PPO agent
+
 from stable_baselines3 import PPO
-from netai_gym import NetAIEnv
-from nqos_split_helper import use_case_helper
-import wandb
+import network_gym_client
+from network_gym_client.envs.nqos_split.adapter import NqosSplitAdapter
 
 ...
 # training
-env = NetAIEnv(client_id, use_case_helper, config_json, wandb) # passing id, use case helper, configure file and wanDb as arguments
+# client_id is a terminal argument, default = 0.
+# config_json includes the common_config.json and config.json.
+env = network_gym_client.make(client_id, NqosSplitAdapter, config_json) # make a network env using pass client id, adatper and configure file arguements.
 model = PPO("MlpPolicy", env, verbose=1) # you can change the env to your deployment environment when the model is trained.
 model.learn(total_timesteps=10_000)
 ...
 ```
  
 ## ⚙️ Configurable File Format:
-- [common_config.json](common_config.json)
+- [common_config.json](network_gym_client/common_config.json)
 
 ```json
 {
@@ -115,17 +177,16 @@ model.learn(total_timesteps=10_000)
   "session_id": "test",//Make sure to change the "session_id" to your assgined keys.
 }
 ```
-- [qos_steer_config.json](qos_steer/qos_steer_config.json) or [nqos_split_config.json](nqos_split/nqos_split_config.json) or [network_slicint.json](network_slicing/network_slicing_config.json)
+- [network_gym_client/envs/qos_steer/config.json](network_gym_client/envs/qos_steer/config.json) or [network_gym_client/envs/nqos_split/config.json](network_gym_client/envs/nqos_split/config.json) or [network_gym_client/envs/network_slicing/config.json](network_gym_client/envs/network_slicing/config.json)
 ```json
 {
   //never use negative value for any configure vale!!!
   "gmasim_config":{
       "type": "gmasim-start", //do not change
-      "use_case": "nqos_split" or "qos_steer" or "network_slicing", //do not change
       "simulation_time_s": 10,
       "random_run": 2, //change the random seed for this simulation run
       "downlink": true, //set to true to simulate downlink data flow, set to false to simulate uplink data flow.
-      "max_wait_time_for_action_ms": -1, //the max time the netaisim worker will wait for an action. set to -1 will cap the wait time to 100 seconds.
+      "max_wait_time_for_action_ms": -1, //the max time the network gym worker will wait for an action. set to -1 will cap the wait time to 100 seconds.
       "enb_locations":{//x, y and z locations of the base station, we support 1 base station only
         "x":40,
         "y":0,
@@ -136,7 +197,7 @@ model.learn(total_timesteps=10_000)
         {"x":50,"y":0,"z":3}
       ],
       "num_users" : 4,
-      "slice_list":[ //network slicing use case only, resouce block group (rbg) size maybe 1, 2, 3 or 4, it depends on the resource block num, see table 7.1.6.1-1 of 36.213
+      "slice_list":[ //network slicing environment only, resouce block group (rbg) size maybe 1, 2, 3 or 4, it depends on the resource block num, see table 7.1.6.1-1 of 36.213
         {"num_users":5,"dedicated_rbg":2,"prioritized_rbg":3,"shared_rbg":4},
         {"num_users":5,"dedicated_rbg":5,"prioritized_rbg":6,"shared_rbg":7},
         {"num_users":5,"dedicated_rbg":0,"prioritized_rbg":0,"shared_rbg":100}
@@ -153,7 +214,7 @@ model.learn(total_timesteps=10_000)
       "transport_protocol": "tcp", //"tcp" or "udp"
       "min_udp_rate_per_user_mbps": 2, // if "transport_protocol" is "udp", this para controls the min sending rate.
       "max_udp_rate_per_user_mbps": 3, // if "transport_protocol" is "udp", this para controls the max sending rate.
-      "qos_requirement": {//only for qos_steer use case
+      "qos_requirement": {//only for qos_steer environment
         "test_duration_ms": 500,//duration for qos testing
         "delay_bound_ms": 100,//max delay for qos flow
         "delay_violation_target":0.02, //delay violation target for qos flow
@@ -172,7 +233,7 @@ model.learn(total_timesteps=10_000)
           "measurement_guard_interval_ms": 0
         },
         "LTE": {
-          "qos_aware_scheduler": true, //qos_steer use case only, set to true to enable qos aware scheduler for LTE.
+          "qos_aware_scheduler": true, //qos_steer environment only, set to true to enable qos aware scheduler for LTE.
           "resource_block_num": 25, //number of resouce blocks for LTE, 25 for 5 MHZ, 50 for 10 MHZ, 75 for 15 MHZ and 100 for 20 MHZ.
           "measurement_interval_ms": 100,
           "measurement_guard_interval_ms": 0
@@ -183,8 +244,7 @@ model.learn(total_timesteps=10_000)
     "agent": "PPO",
     "policy": "MlpPolicy",
     "train": true,
-    "reward_type" : "delay",
-    "input": "matrix"
+    "reward_type" : "delay"
   },
 
   "rl_agent_config_option_list"://do not change this list, it provides the available inputs for the rl_agent_config
@@ -192,8 +252,7 @@ model.learn(total_timesteps=10_000)
     "agent": ["", "PPO", "DDPG"],// set to "" will disable agent, i.e., use the system's default algorithm for offline data collection
     "policy": ["MlpPolicy"],
     "train": [true, false],//set to true to train model, set to false to test pretrained model.
-    "reward_type" : ["delay", "throughput"],
-    "input": ["matrix", "flat"]//set the input type for observations
+    "reward_type" : ["delay", "throughput"]
   },
 
   "gmasim_action_template":{//do not change
@@ -203,7 +262,7 @@ model.learn(total_timesteps=10_000)
 
 ## 🚩 TODOs
 
-- TODO 1: Create a Website for NetAI Gym including the 3 Scenarios.
+- TODO 1: Create a Website for Network Gym including the 3 Scenarios.
 - TODO 2: show two instance (System default vs DDPG) at the same time, visualize results using WanDB and influxDB.
-- TODO 3: two slice plus demo video for NetAI Gym.
-- TODO 4: move the main_rl.py ousite the folder...
+- TODO 3: two slice plus demo video for Network Gym.
+- TODO 4: change file and class names, e.g., GMAsim to networkgym.simulator. Change function names...

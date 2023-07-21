@@ -1,8 +1,8 @@
 {
   "gmasim_config":{
       "type": "gmasim-start",
-      "use_case": "network_slicing",
-      "simulation_time_s": 5,
+      "use_case": "qos_steer",
+      "simulation_time_s": 4,
       "random_run": 2,
       "downlink": true,
       "max_wait_time_for_action_ms": -1,
@@ -12,11 +12,9 @@
         "z":3
       },
       "ap_locations":[
+        {"x":40,"y":0,"z":3}
       ],
-      "slice_list":[
-        {"num_users":10,"dedicated_rbg":0,"prioritized_rbg":13,"shared_rbg":25},
-        {"num_users":30,"dedicated_rbg":0,"prioritized_rbg":12,"shared_rbg":25}
-      ],
+      "num_users": 30,
       "user_left_right_speed_m/s": 1,
       "user_location_range":{
         "min_x":0,
@@ -28,9 +26,12 @@
       "app_and_measurement_start_time_ms": 1000,
       "transport_protocol": "udp",
       "min_udp_rate_per_user_mbps": 2,
-      "max_udp_rate_per_user_mbps": 2,
+      "max_udp_rate_per_user_mbps": 3,
       "qos_requirement": {
-        "delay_bound_ms": 100
+        "test_duration_ms": 500,
+        "delay_bound_ms": 100,
+        "delay_violation_target":0.02,
+        "loss_target": 0.001
       },
       "GMA": {
           "downlink_mode": "auto",
@@ -45,18 +46,18 @@
         "measurement_guard_interval_ms": 0
       },
       "LTE": {
-        "resource_block_num": 100,
+        "qos_aware_scheduler": true,
+        "resource_block_num": 25,
         "measurement_interval_ms": 1000,
         "measurement_guard_interval_ms": 0
       }
     },
-  
+
   "rl_agent_config":{
-    "agent": "",
+    "agent": "PPO",
     "policy": "MlpPolicy",
     "train": true,
-    "reward_type" : "delay",
-    "input": "matrix"
+    "reward_type" : "wifi_qos_user_num"
   },
 
   "rl_agent_config_option_list":
@@ -64,18 +65,17 @@
     "agent": ["", "PPO", "DDPG"],
     "policy": ["MlpPolicy"],
     "train": [true, false],
-    "reward_type" : ["delay", "throughput"],
-    "input": ["matrix", "flat"]
+    "reward_type" : ["wifi_qos_user_num"]
   },
 
   "gmasim_action_template":{
       "type": "gmasim-action",
       "end_ts": 0,
       "downlink": true,
-      "action_name":"rb_allocation",
+      "action_name":"split_ratio",
       "action_list":[
-        {"slice":0,"D":1,"P":1,"S":1},
-        {"slice":1,"D":2,"P":2,"S":2}
+        {"cid":"Wi-Fi","user":0,"value":1},
+        {"cid":"LTE","user":0,"value":0}
       ]
   }
 }
