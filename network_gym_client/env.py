@@ -68,7 +68,7 @@ class Env(gym.Env):
         step_length = config_json['gmasim_config']['GMA']['measurement_interval_ms'] + config_json['gmasim_config']['GMA']['measurement_guard_interval_ms']
         # compute the simulation time based on setting
         config_json['gmasim_config']['simulation_time_s'] = int((config_json['gmasim_config']['app_and_measurement_start_time_ms'] + step_length * self.steps_per_episode * self.episodes_per_session)/1000)
-        print(config_json['gmasim_config']['simulation_time_s'])
+        print("Environment duration: " + str(config_json['gmasim_config']['simulation_time_s']) + "s")
         #Define config params
         if(config_json['gmasim_config']['env'] == "nqos_split"):
             self.adapter = NqosSplitAdapter()

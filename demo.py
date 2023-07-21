@@ -4,7 +4,7 @@ from network_gym_client import Env as NetworkGymEnv
 client_id = 0
 env_name = "nqos_split"
 config_json = load_config_file(env_name)
-
+config_json["rl_agent_config"]["agent"] = "random"
 # Create the environment
 env = NetworkGymEnv(client_id, config_json) # make a network env using pass client id and configure file arguements.
 

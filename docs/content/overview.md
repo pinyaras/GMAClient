@@ -3,12 +3,8 @@ title: Overview
 ---
 # Overview
 
-The NetworkGym offers northbound Interface for the [NetworkGymClient](https://github.com/pinyaras/GMAClient) to select and configure network environment.
-network_gym also provides environment specific adapters to transform the network_gym dataformat to the gymnasium data format, then interact with the gymnasium compatible agents such as stable-baselines3 and cleanRL.
-At present, network_gym caters to **Three** distinct network environments (policy) and provides support for **Ten** different network stats measurement metrics.
-The southbound Interface that bridges the network_gym server and environment will be released in the future.
+The NetworkGym contains three components (client, server, and environment) and two interfaces (northbound and southbound). As shown in the following graph. 
 
-## Flow Chart
 
 ```{mermaid}
 flowchart TB
@@ -60,6 +56,20 @@ style adapter fill:#1E90FF,color:white,stroke:white
 click northbound_interface "/api/network_gym_client/northbound_interface.html" _blank
 style northbound_interface fill:#1E90FF,color:white,stroke:white
 ```
+
+## Client
+Within the NetworkGymClient, it consits of a norhtbound interface, an adapter and custumized Gymnasium environment. The northbound interface connects the client to the server. It also allows the client to select and configure network environment. Finally, the environment specific adapters to transform the NetworkGym dataformat to the gymnasium data format, then communicate with the gymnasium compatible agents such as stable-baselines3 and cleanRL.
+
+## Server
+For the NetworkGymServer, it communicates with the client with northbound interface and interacts with the environment using the southbound interface. It also keeps a routing map for each active client and its assigned environment during a connected session.
+
+```{note}
+The southbound interface will be released in the future.
+```
+
+## Environment
+The NetworkGym environment connects the worker (either a simulator, emulator or testbed) to the server using the southbound interface. At present, we only support the ns-3 based simulator with **Three** distinct network environments and provides support for **Ten** different network stats measurement metrics.
+
 
 ## Class Diagram
 
