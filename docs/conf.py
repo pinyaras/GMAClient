@@ -11,7 +11,7 @@ import sys
 sys.path.insert(0, os.path.abspath('..'))
 
 project = 'NetworkGym'
-copyright = '2023, Menglei Zhang'
+copyright = '2023, Intel Labs Multi-Access Intelligence'
 author = 'Menglei Zhang'
 
 # -- General configuration ---------------------------------------------------
@@ -43,7 +43,7 @@ autodoc_preserve_defaults = True
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "furo"
+html_theme = "sphinx_book_theme"
 html_title = "NetworkGym Documentation"
 html_logo = "network_gym_logo.png"
 html_static_path = ['_static']

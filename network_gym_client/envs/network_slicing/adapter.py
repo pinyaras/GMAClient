@@ -29,14 +29,11 @@ class Adapter(Adapter):
     Args:
         Adapter (Adapter): the base class
     """
-    def __init__(self, wandb):
+    def __init__(self):
         """Initilize adapter
-
-        Args:
-            wandb (wandb): the WandDB databse
         """
         self.env = "network_slicing"
-        super().__init__(wandb)
+        super().__init__()
 
     def get_action_space(self):
         """Get action space for network slicing env
@@ -203,7 +200,7 @@ class Adapter(Adapter):
         df_slice_load = df_slice_load.drop(columns=['value'])
 
         #print (df_load)
-        print (df_slice_load)
+        #print (df_slice_load)
 
         df_phy_lte_max_rate['slice_id']=user_to_slice_id[df_phy_lte_max_rate['user']]
         df_phy_lte_max_rate['slice_value']= df_phy_lte_max_rate.groupby(['slice_id'])['value'].transform('mean')
@@ -213,7 +210,7 @@ class Adapter(Adapter):
         df_slice_lte_max_rate = df_slice_lte_max_rate.drop(columns=['value'])
 
         #print (df_phy_lte_max_rate)
-        print (df_slice_lte_max_rate)
+        #print (df_slice_lte_max_rate)
 
         df_lte_rate = df_rate[df_rate['cid'] == 'LTE'].reset_index(drop=True) #keep the LTE rate.
         df_lte_rate['slice_id']=user_to_slice_id[df_lte_rate['user']]
@@ -224,7 +221,7 @@ class Adapter(Adapter):
         df_lte_slice_rate = df_lte_slice_rate.drop(columns=['value'])
 
         #print (df_lte_rate)
-        print (df_lte_slice_rate)
+        #print (df_lte_slice_rate)
 
         df_lte_qos_rate = df_qos_rate[df_qos_rate['cid'] == 'LTE'].reset_index(drop=True) #keep the LTE rate.
         df_lte_qos_rate['slice_id']=user_to_slice_id[df_lte_qos_rate['user']]
@@ -235,7 +232,7 @@ class Adapter(Adapter):
         df_lte_qos_slice_rate = df_lte_qos_slice_rate.drop(columns=['value'])
 
         #print (df_lte_qos_rate)
-        print (df_lte_qos_slice_rate)
+        #print (df_lte_qos_slice_rate)
 
         df_phy_lte_rb_usage['slice_id']=user_to_slice_id[df_phy_lte_rb_usage['user']]
         df_phy_lte_rb_usage['slice_value']= df_phy_lte_rb_usage.groupby(['slice_id'])['value'].transform('sum')
@@ -245,7 +242,7 @@ class Adapter(Adapter):
         df_slice_lte_rb_usage = df_slice_lte_rb_usage.drop(columns=['value'])
 
         #print (df_phy_lte_rb_usage)
-        print (df_slice_lte_rb_usage)
+        #print (df_slice_lte_rb_usage)
 
         df_delay_violation['slice_id']=user_to_slice_id[df_delay_violation['user']]
         df_delay_violation['slice_value']= df_delay_violation.groupby(['slice_id'])['value'].transform('mean')
@@ -255,7 +252,7 @@ class Adapter(Adapter):
         df_slice_delay_violation = df_slice_delay_violation.drop(columns=['value'])
 
         #print (df_delay_violation)
-        print (df_slice_delay_violation)
+        #print (df_slice_delay_violation)
         
         #Convert dataframe of Txrate state to python dict
 
@@ -305,7 +302,8 @@ class Adapter(Adapter):
 
         #check reward type, TODO: add reward combination of delay and throughput from network util function
         reward = 0
-        print("[WARNING] reward fucntion not defined yet")
+
+        # print("[WARNING] reward fucntion not defined yet")
 
 
         if not self.wandb_log_info:

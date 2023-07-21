@@ -48,7 +48,7 @@
       },
 
   "rl_agent_config":{
-    "agent": "DDPG",
+    "agent": "",
     "policy": "MlpPolicy",
     "train": true,
     "reward_type" : "delay"

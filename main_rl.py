@@ -1,5 +1,4 @@
 import argparse
-import gymnasium as gym
 import numpy as np
 import pathlib
 import json
@@ -10,80 +9,51 @@ from stable_baselines3.common.env_checker import check_env
 
 from stable_baselines3 import A2C, DDPG, PPO, SAC, TD3
 from stable_baselines3.common.vec_env import VecNormalize
-import wandb
-from wandb.integration.sb3 import WandbCallback
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.callbacks import CheckpointCallback
 from gymnasium.wrappers import NormalizeObservation
 
-#MODEL_SAVE_FREQ = 1000
-#LOG_INTERVAL = 10
-NUM_OF_EVALUATE_EPISODES = 5
-
-#checkpoint_callback = CheckpointCallback(
-#    save_freq=MODEL_SAVE_FREQ,  # Save the model every 1 episode
-#    save_path='./models/',
-#    name_prefix='rl_model' # should be passed from the json file.
-#)
-
 def train(agent, config_json):
 
-    num_steps = 0
-
-    #configure the num_steps based on the json file
-    if (config_json['gmasim_config']['GMA']['measurement_interval_ms'] + config_json['gmasim_config']['GMA']['measurement_guard_interval_ms']
-        == config_json['gmasim_config']['Wi-Fi']['measurement_interval_ms'] + config_json['gmasim_config']['Wi-Fi']['measurement_guard_interval_ms']
-        == config_json['gmasim_config']['LTE']['measurement_interval_ms'] + config_json['gmasim_config']['LTE']['measurement_guard_interval_ms']):
-        num_steps = int(config_json['gmasim_config']['simulation_time_s'] * 1000/config_json['gmasim_config']['GMA']['measurement_interval_ms'])
-    else:
-        print(config_json['gmasim_config']['GMA']['measurement_interval_ms'])
-        print(config_json['gmasim_config']['GMA']['measurement_guard_interval_ms'])
-        print(config_json['gmasim_config']['Wi-Fi']['measurement_interval_ms'])
-        print(config_json['gmasim_config']['Wi-Fi']['measurement_guard_interval_ms'])
-        print(config_json['gmasim_config']['LTE']['measurement_interval_ms'])
-        print(config_json['gmasim_config']['LTE']['measurement_guard_interval_ms'])
-        sys.exit('[Error!] The value of GMA, Wi-Fi, and LTE measurement_interval_ms + measurement_guard_interval_ms should be the same!')
+    steps_per_episode = int(config_json['gmasim_config']['steps_per_episode'])
+    episodes_per_session = int(config_json['gmasim_config']['episodes_per_session'])
+    num_steps = steps_per_episode*episodes_per_session
     
-    #model = agent.learn(total_timesteps=num_steps,log_interval=LOG_INTERVAL, callback=checkpoint_callback)
     model = agent.learn(total_timesteps=num_steps)
     model.save(config_json['rl_agent_config']['agent'] )
 
     #TODD Terminate the RL agent when the simulation ends.
 def system_default_policy(env, config_json):
 
-    num_steps = 0
+    steps_per_episode = int(config_json['gmasim_config']['steps_per_episode'])
+    episodes_per_session = int(config_json['gmasim_config']['episodes_per_session'])
+    num_steps = steps_per_episode*episodes_per_session
 
-    #configure the num_steps based on the json file
-    if (config_json['gmasim_config']['GMA']['measurement_interval_ms'] + config_json['gmasim_config']['GMA']['measurement_guard_interval_ms']
-        == config_json['gmasim_config']['Wi-Fi']['measurement_interval_ms'] + config_json['gmasim_config']['Wi-Fi']['measurement_guard_interval_ms']
-        == config_json['gmasim_config']['LTE']['measurement_interval_ms'] + config_json['gmasim_config']['LTE']['measurement_guard_interval_ms']):
-        num_steps = int(config_json['gmasim_config']['simulation_time_s'] * 1000/config_json['gmasim_config']['GMA']['measurement_interval_ms'])
-    else:
-        print(config_json['gmasim_config']['GMA']['measurement_interval_ms'])
-        print(config_json['gmasim_config']['GMA']['measurement_guard_interval_ms'])
-        print(config_json['gmasim_config']['Wi-Fi']['measurement_interval_ms'])
-        print(config_json['gmasim_config']['Wi-Fi']['measurement_guard_interval_ms'])
-        print(config_json['gmasim_config']['LTE']['measurement_interval_ms'])
-        print(config_json['gmasim_config']['LTE']['measurement_guard_interval_ms'])
-        sys.exit('[Error!] The value of GMA, Wi-Fi, and LTE measurement_interval_ms + measurement_guard_interval_ms should be the same!')
+    truncated = True # episode end
+    terminated = False # episode end and simulation end
+    for step in range(num_steps+10):
 
-    done = True
-    for step in range(num_steps):
+        # if simulation end, exit
+        if terminated:
+            print("simulation end")
+            break
+
         # If the epsiode is up, then start another one
-        if done:
+        if truncated:
+            print("new episode")
             obs = env.reset()
 
+
+        
         action = np.array([])#no action from the rl agent
 
         # apply the action
-        obs, reward, done, done, info = env.step(action)
+        obs, reward, terminated, truncated, info = env.step(action)
+        #print(obs)
 
-        print(obs)
 
-        if info['terminate_flag']:
-            break
 
-def evaluate(model, env, n_episodes=NUM_OF_EVALUATE_EPISODES):
+def evaluate(model, env, n_episodes):
     rewards = []
     for i in range(n_episodes):
         obs = env.reset()
@@ -136,17 +106,6 @@ def main():
         "RL_algo" : rl_alg
     }
 
-    run = wandb.init(
-        # name=rl_alg + "_" + str(config_json['gmasim_config']['num_users']) + "_LTE_" +  str(config_json['gmasim_config']['LTE']['resource_block_num']),
-        #name=rl_alg + "_" + str(config_json['gmasim_config']['num_users']) + "_" +  str(config_json['gmasim_config']['LTE']['resource_block_num']),
-        name=rl_alg,
-        # project="netai-gym",
-        project="gmasim-gym",
-        config=config,
-        sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
-        # save_code=True,  # optional
-    )
-
     alg_map = {
         'PPO': PPO,
         'DDPG': DDPG,
@@ -163,7 +122,7 @@ def main():
     client_id = args.client_id
     # Create the environment
     print("[" + args.env + "] environment selected.")
-    env = NetworkGymEnv(client_id, wandb, config_json) # make a network env using pass client id, adatper and configure file arguements.
+    env = NetworkGymEnv(client_id, config_json) # make a network env using pass client id, adatper and configure file arguements.
     normal_obs_env = NormalizeObservation(env)
     # It will check your custom environment and output additional warnings if needed
     # only use this function for debug, 
@@ -181,10 +140,10 @@ def main():
             agent = agent_class.load(path)
             # n_episodes = config_json['rl_agent_config']['timesteps'] / 100
 
-            evaluate(agent, normal_obs_env)
+            evaluate(agent, normal_obs_env, 5)
         else:
             # Train the agent
-            agent = agent_class(config_json['rl_agent_config']['policy'], normal_obs_env, verbose=1, tensorboard_log=f"runs/{run.id}")
+            agent = agent_class(config_json['rl_agent_config']['policy'], normal_obs_env, verbose=1)
             train(agent, config_json)
     else:
         #use the system_default algorithm...
@@ -204,4 +163,4 @@ def arg_parser():
 
 if __name__ == '__main__':
     main()
-    time.sleep(10)
+    time.sleep(1)

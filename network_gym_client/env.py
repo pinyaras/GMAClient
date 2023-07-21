@@ -15,33 +15,67 @@ np.set_printoptions(precision=3)
 
 FILE_PATH = pathlib.Path(__file__).parent
 
-STEPS_PER_EPISODE = 100
+def load_config_file(env):
+    #load config files
+    FILE_PATH = pathlib.Path(__file__).parent
+    #common_config.json is shared by all environments
+    f = open(FILE_PATH / 'common_config.json')
+    common_config_json = json.load(f)
+    
+    #load the environment dependent config file
+    file_name = 'envs/' +env + '/config.json'
+    f = open(FILE_PATH / file_name)
+
+    use_case_config_json = json.load(f)
+    config_json = {**common_config_json, **use_case_config_json}
+    config_json['gmasim_config']['env'] = env
+    return config_json
 
 class Env(gym.Env):
     """Custom Environment that follows gym interface."""
 
-    def __init__(self, id, wandb, config_json):
+    def __init__(self, id, config_json):
         """Initilize networkgym_env class
 
         Args:
             id (int): the client ID number
-            wandb (wandb): wandb database
             config_json (json): configuration file
         """
         super().__init__()
 
         if config_json['session_name'] == 'test':
-            #username = wandb.api_key.split()[0].split("@")[0]
-                print('***[WARNING]*** You are using the default "test" to connect to the server, which may conflict with the simulations launched by other users.')
-                print('***[WARNING]*** Please change the "session_name" attribute in the common_config.json file to your assigned session name. If you do not have one, contact menglei.zhang@intel.com.')
+            print('***[WARNING]*** You are using the default "test" to connect to the server, which may conflict with the simulations launched by other users.')
+            print('***[WARNING]*** Please change the "session_name" attribute in the common_config.json file to your assigned session name.')
         
+        #check if the measurement interval for all measurements are the same.
+        if (config_json['gmasim_config']['GMA']['measurement_interval_ms'] + config_json['gmasim_config']['GMA']['measurement_guard_interval_ms']
+            == config_json['gmasim_config']['Wi-Fi']['measurement_interval_ms'] + config_json['gmasim_config']['Wi-Fi']['measurement_guard_interval_ms']
+            == config_json['gmasim_config']['LTE']['measurement_interval_ms'] + config_json['gmasim_config']['LTE']['measurement_guard_interval_ms']):
+            pass
+        else:
+            print(config_json['gmasim_config']['GMA']['measurement_interval_ms'])
+            print(config_json['gmasim_config']['GMA']['measurement_guard_interval_ms'])
+            print(config_json['gmasim_config']['Wi-Fi']['measurement_interval_ms'])
+            print(config_json['gmasim_config']['Wi-Fi']['measurement_guard_interval_ms'])
+            print(config_json['gmasim_config']['LTE']['measurement_interval_ms'])
+            print(config_json['gmasim_config']['LTE']['measurement_guard_interval_ms'])
+            sys.exit('[Error!] The value of GMA, Wi-Fi, and LTE measurement_interval_ms + measurement_guard_interval_ms should be the same!')
+
+
+        self.steps_per_episode = int(config_json['gmasim_config']['steps_per_episode'])
+        self.episodes_per_session = int(config_json['gmasim_config']['episodes_per_session'])
+
+        step_length = config_json['gmasim_config']['GMA']['measurement_interval_ms'] + config_json['gmasim_config']['GMA']['measurement_guard_interval_ms']
+        # compute the simulation time based on setting
+        config_json['gmasim_config']['simulation_time_s'] = int((config_json['gmasim_config']['app_and_measurement_start_time_ms'] + step_length * self.steps_per_episode * self.episodes_per_session)/1000)
+        print(config_json['gmasim_config']['simulation_time_s'])
         #Define config params
         if(config_json['gmasim_config']['env'] == "nqos_split"):
-            self.adapter = NqosSplitAdapter(wandb)
+            self.adapter = NqosSplitAdapter()
         elif(config_json['gmasim_config']['env'] == "qos_steer"):
-            self.adapter = QosSteerAdapter(wandb)
+            self.adapter = QosSteerAdapter()
         elif(config_json['gmasim_config']['env'] == "network_slicing"):
-            self.adapter = NetworkSlicingAdapter (wandb)
+            self.adapter = NetworkSlicingAdapter ()
         else:
             sys.exit("[" + config_json['gmasim_config']['env'] + "] environment is not implemented.")
 
@@ -59,7 +93,6 @@ class Env(gym.Env):
 
         #self.link_type = config_json['rl_agent_config']['link_type'] 
         self.current_step = 0
-        self.max_steps = STEPS_PER_EPISODE
         self.current_ep = 0
         self.first_episode = True
 
@@ -85,7 +118,9 @@ class Env(gym.Env):
             info (dictionary):  This dictionary contains auxiliary information complementing ``observation``. It should be analogous to
                 the ``info`` returned by :meth:`step`.
         """
-        self.current_step = 0
+        self.current_step = 1
+        self.current_ep += 1
+
         # if a new simulation starts (first episode) in the reset function, we need to connect to server
         # else a new episode of the same simulation.
             # do not need to connect, send action directly
@@ -96,8 +131,8 @@ class Env(gym.Env):
 
         measurement_report = self.northbound_interface_client.recv()#first measurement
         ok_flag = measurement_report.ok_flag
-        terminate_flag = measurement_report.terminate_flag
         df_list =  measurement_report.df_list
+
 
         df_phy_lte_max_rate = df_list[0]
         df_phy_wifi_max_rate = df_list[1]
@@ -110,9 +145,8 @@ class Env(gym.Env):
         df_phy_lte_slice_id = df_list[8]
         df_phy_lte_rb_usage = df_list[9]
         df_delay_violation = df_list[10]
-        #print(df_phy_lte_slice_id)
-        #print(df_phy_lte_rb_usage)
-        #print(df_delay_violation)
+
+        print("reset() at time:" + str(df_load["end_ts"][0]) + "ms, episode:" + str(self.current_ep) + ", step:" + str(self.current_step))
 
         if self.enable_rl_agent and not ok_flag:
             print("[WARNING], some users may not have a valid measurement, for qos_steering case, the qos_test is not finished before a measurement return...")
@@ -121,58 +155,8 @@ class Env(gym.Env):
 
         # print(observation.shape)
 
-        self.current_ep += 1
 
-        return observation.astype(np.float32), {"df_owd": df_owd, "obs" : observation, "terminate_flag": terminate_flag}
-
-    def get_obs_reward(self):
-        """Call the northbound interface to receive the newotk stats, then transform to observation and reward using environment data format adatper.
-
-        Returns:
-            observation (ObsType): An element of the environment's `observation_space` as the next observation due to the agent actions.
-            reward (SupportsFloat): The reward as a result of taking the action.
-            df_owd (pandas.dataframe): One-way delay measurement.
-            observation (ObsType): The raw network stats measurements.
-            terminate_flag (Bool): A flag to indicate environment is stopped.
-        """
-        #receive measurement from network gym server
-        measurement_report = self.northbound_interface_client.recv()
-        ok_flag = measurement_report.ok_flag
-        terminate_flag = measurement_report.terminate_flag
-        df_list =  measurement_report.df_list
-        if terminate_flag == True:
-            self.first_episode = True
-            self.current_ep = 0
-            quit()
-            #simulation already ended, connect again in the reset function to start a new one...
-            return [], 0, [], [], terminate_flag
-       
-        if self.enable_rl_agent and not ok_flag:
-            print("[WARNING], some users may not have a valid measurement, for qos_steering case, the qos_test is not finished before a measurement return...")
-        df_phy_lte_max_rate = df_list[0]
-        df_phy_wifi_max_rate = df_list[1]
-        df_load = df_list[2]
-        df_rate = df_list[3]
-        df_qos_rate = df_list[4]
-        df_owd = df_list[5]
-        df_split_ratio = df_list[6]
-        df_ap_id = df_list[7]
-        df_phy_lte_slice_id = df_list[8]
-        df_phy_lte_rb_usage = df_list[9]
-        df_delay_violation = df_list[10]
-        #print(df_phy_lte_slice_id)
-        #print(df_phy_lte_rb_usage)
-        #print(df_delay_violation)
-
-        observation = self.adapter.prepare_observation(df_list)
-
-        print("step function at time:" + str(df_load["end_ts"][0]))
-        # print(observation)
-
-        #Get reward
-        rewards = self.adapter.prepare_reward(df_list)
-        
-        return observation, rewards, df_owd, observation, terminate_flag
+        return observation.astype(np.float32), {"network_stats": df_list}
 
     def step(self, action):
         """Run one timestep of the environment's dynamics using the agent actions.
@@ -201,6 +185,7 @@ class Env(gym.Env):
                 A done signal may be emitted for different reasons: Maybe the task underlying the environment was solved successfully,
                 a certain timelimit was exceeded, or the physics simulation has entered an invalid state.
         """
+        self.current_step += 1
 
         #1.) Get action from RL agent and send to network gym server
         if not self.enable_rl_agent or action.size == 0:
@@ -213,23 +198,48 @@ class Env(gym.Env):
             self.northbound_interface_client.send(policy) #send network policy to network gym server
 
         #2.) Get measurements from gamsim and obs and reward
-        observation, reward, df_owd, obs, terminate_flag = self.get_obs_reward()
-        if terminate_flag:
-            return [], 0, True,  {"df_owd": [], "obs" : [], "terminate_flag": terminate_flag}
+        measurement_report = self.northbound_interface_client.recv()
+        ok_flag = measurement_report.ok_flag
+        df_list =  measurement_report.df_list
+       
+        if self.enable_rl_agent and not ok_flag:
+            print("[WARNING], some users may not have a valid measurement, for qos_steering case, the qos_test is not finished before a measurement return...")
+        df_phy_lte_max_rate = df_list[0]
+        df_phy_wifi_max_rate = df_list[1]
+        df_load = df_list[2]
+        df_rate = df_list[3]
+        df_qos_rate = df_list[4]
+        df_owd = df_list[5]
+        df_split_ratio = df_list[6]
+        df_ap_id = df_list[7]
+        df_phy_lte_slice_id = df_list[8]
+        df_phy_lte_rb_usage = df_list[9]
+        df_delay_violation = df_list[10]
+
+        print("step() at time:" + str(df_load["end_ts"][0]) + "ms, episode:" + str(self.current_ep) + ", step:" + str(self.current_step))
+
+        observation = self.adapter.prepare_observation(df_list)
+
+        # print(observation)
+
+        #Get reward
+        reward = self.adapter.prepare_reward(df_list)
 
 
         self.adapter.wandb_log()
 
         #3.) Check end of Episode
-        done = self.current_step >= self.max_steps
-
-        self.current_step += 1
+        truncated = self.current_step >= self.steps_per_episode
 
         # print("Episdoe", self.current_ep ,"step", self.current_step, "reward", reward, "Done", done)
 
-        if done:
+        terminated = False
+        if truncated:
             if self.first_episode:
                 self.first_episode = False
 
+            if self.current_ep == self.episodes_per_session:
+                terminated = True   
         #4.) return observation, reward, done, info
-        return observation.astype(np.float32), reward, done, done, {"df_owd": df_owd, "obs" : obs, "terminate_flag": terminate_flag}
+        # print("terminated:" + str(terminated) + " truncated:" + str(truncated))
+        return observation.astype(np.float32), reward, terminated, truncated, {"network_stats": df_list}
