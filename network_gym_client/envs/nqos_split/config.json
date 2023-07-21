@@ -2,7 +2,8 @@
   "gmasim_config":{
       "type": "gmasim-start",
       "use_case": "nqos_split",
-      "simulation_time_s": 5,
+      "steps_per_episode": 10,
+      "episodes_per_session": 5,
       "random_run": 2,
       "downlink": true,
       "max_wait_time_for_action_ms": -1,
@@ -48,7 +49,7 @@
       },
 
   "rl_agent_config":{
-    "agent": "DDPG",
+    "agent": "",
     "policy": "MlpPolicy",
     "train": true,
     "reward_type" : "delay"

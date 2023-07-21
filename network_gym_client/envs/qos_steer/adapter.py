@@ -10,15 +10,12 @@ class Adapter(Adapter):
     Args:
         Adapter (Adapter): base class
     """
-    def __init__(self, wandb):
+    def __init__(self):
         """Initialize adapter
-
-        Args:
-            wandb (wandb): WanDB database
         """
         self.env = "qos_steer"
         self.action_max_value = 1
-        super().__init__(wandb)
+        super().__init__()
 
     def get_action_space (self):
         """Get action space for qos steer env

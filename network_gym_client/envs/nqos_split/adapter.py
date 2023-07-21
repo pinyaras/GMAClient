@@ -75,15 +75,12 @@ class Adapter(Adapter):
     Args:
         Adapter (Adapter): base class
     """
-    def __init__(self, wandb):
+    def __init__(self):
         """Initialize the adapter
-
-        Args:
-            wandb (wandb): WanDB database
         """
         self.env = "nqos_split"
         self.action_max_value = 32
-        super().__init__(wandb)
+        super().__init__()
 
     def get_action_space(self):
         """Get action space for the nqos split env

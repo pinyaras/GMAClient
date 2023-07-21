@@ -183,7 +183,8 @@ model.learn(total_timesteps=10_000)
   //never use negative value for any configure vale!!!
   "gmasim_config":{
       "type": "gmasim-start", //do not change
-      "simulation_time_s": 10,
+      "steps_per_episode": 10, //the env will run app_and_measurement_start_time_ms + (measurement_interval_ms+measurement_guard_interval_ms) * steps_per_episode * episodes_per_session
+      "episodes_per_session": 5,
       "random_run": 2, //change the random seed for this simulation run
       "downlink": true, //set to true to simulate downlink data flow, set to false to simulate uplink data flow.
       "max_wait_time_for_action_ms": -1, //the max time the network gym worker will wait for an action. set to -1 will cap the wait time to 100 seconds.

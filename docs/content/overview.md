@@ -1,15 +1,12 @@
 ---
 title: Overview
 ---
-
 # Overview
 
 The NetworkGym offers northbound Interface for the [NetworkGymClient](https://github.com/pinyaras/GMAClient) to select and configure network environment.
 network_gym also provides environment specific adapters to transform the network_gym dataformat to the gymnasium data format, then interact with the gymnasium compatible agents such as stable-baselines3 and cleanRL.
 At present, network_gym caters to **Three** distinct network environments (policy) and provides support for **Ten** different network stats measurement metrics.
 The southbound Interface that bridges the network_gym server and environment will be released in the future.
-
-## TODO: provide southbound api example code
 
 ## Flow Chart
 
@@ -54,13 +51,13 @@ southbound --env_config,policy--> southbound_interface[[southbound_interface]]
 southbound_interface --network_stats--> southbound
 
 
-click gymnasium.env "/client_api/env.html" _blank
+click gymnasium.env "/api/network_gym_client/env.html" _blank
 style gymnasium.env fill:#1E90FF,color:white,stroke:white
 
-click adapter "/client_api/adapter.html" _blank
+click adapter "/api/network_gym_client/adapter.html" _blank
 style adapter fill:#1E90FF,color:white,stroke:white
 
-click northbound_interface "/client_api/northbound_interface.html" _blank
+click northbound_interface "/api/network_gym_client/northbound_interface.html" _blank
 style northbound_interface fill:#1E90FF,color:white,stroke:white
 ```
 

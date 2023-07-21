@@ -51,9 +51,3 @@ title: Env
    The Environment Adapter object traslate the dataformat between the gymnasium and network_gym. 
 
 ```
-
-### Additional Methods
-
-```{eval-rst}
-.. autofunction:: network_gym_client.Env.get_obs_reward
-```

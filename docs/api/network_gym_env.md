@@ -1,8 +1,8 @@
 ---
-title: NetworkGymEnv
+title: network_gym_env
 ---
 
-# NetworkGymEnv
+# network_gym_env
 
 
 ```{mermaid}
@@ -23,5 +23,5 @@ NetworkGymEnv includes the two components, a **southbound interface**, and a **N
 
 
 ```{note}
-At present, we do not plan to release the network_gym_env.
+TODO: provide southbound interface example code
 ```

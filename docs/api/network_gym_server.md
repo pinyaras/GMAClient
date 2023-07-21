@@ -1,8 +1,8 @@
 ---
-title: NetworkGymServer
+title: network_gym_server
 ---
 
-# NetworkGymServer
+# network_gym_server
 
 ```{mermaid}
 flowchart LR

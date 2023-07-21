@@ -5,7 +5,7 @@ lastpage:
 ---
 
 # NetworkGym: Network Simulation-as-a-Service
-Introducing NetworkGym, an open Simulation-as-a-Service framework to revolutionize Network AI Research and Development. NetworkGYm comprises three key components, each playing a vital role in the framework:
+Introducing NetworkGym, an open Simulation-as-a-Service framework to revolutionize Network AI Research and Development. NetworkGym comprises three key components, each playing a vital role in the framework:
 
 ![network_gym_flow](network_gym_flow.png)
 
@@ -14,7 +14,7 @@ It caters to the development of both AI and non-AI algorithms, empowering users 
 - **NetworkGym API:** Open API for collecting data and interacting with the simulated network environment.
 - **NetworkGym Env (NetworkGym Server & Simulator):** Leverage open-source network simulation tools, e.g., [ns-3](https://www.nsnam.org/); Enhance it with customized capabilities & use-cases, e.g. Traffic Steering, Network Slicing, Distributed Compute, Dynamic QoS, Energy Saving, etc.
 
-## What is NetAIGym about and NOT about?
+## What is NetworkGym about and NOT about?
 
 ### ✔️ In-Scope 
 - Develop **open & reference** AI models/algos for **networking research (Layer 2 & above)**
@@ -33,26 +33,16 @@ It caters to the development of both AI and non-AI algorithms, empowering users 
 
 content/where_is_data
 content/overview
-content/quick_start
-```
-
-
-```{toctree}
-:hidden:
-:caption: Components
-
-content/client
-content/server
-content/env
+content/quickstart
 ```
 
 ```{toctree}
 :hidden:
-:caption: Client API
+:caption: API
 
-client_api/env
-client_api/adapter
-client_api/northbound_interface
+api/network_gym_client
+api/network_gym_server
+api/network_gym_env
 ```
 
 ```{toctree}
