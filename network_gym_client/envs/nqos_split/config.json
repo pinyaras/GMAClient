@@ -15,7 +15,7 @@
         {"x":15,"y":0,"z":3},
         {"x":35,"y":0,"z":3}
       ],
-      "num_users" : 8,
+      "num_users" : 4,
       "user_left_right_speed_m/s": 2,
       "user_location_range":{
         "min_x":0,
@@ -25,7 +25,7 @@
         "z":1.5
       },
       "app_and_measurement_start_time_ms": 1000,
-      "transport_protocol": "udp",
+      "transport_protocol": "tcp",
       "min_udp_rate_per_user_mbps": 6,
       "max_udp_rate_per_user_mbps": 6,
       "GMA": {
@@ -48,7 +48,7 @@
       },
 
   "rl_agent_config":{
-    "agent": "",
+    "agent": "DDPG",
     "policy": "MlpPolicy",
     "train": true,
     "reward_type" : "delay"

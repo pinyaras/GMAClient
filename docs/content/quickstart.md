@@ -35,7 +35,7 @@ After acquiring early access to NetworkGym, you can proceed to download the clie
 ```
 In the following, we will provide some basic python code to interfact with NetworkGym environements.
 
-## Initializing Environments
+### Initializing Environments
 
 Initializing environments is very easy in NetworkGym and can be done via the ``network_gym_client`` package:
 
@@ -47,7 +47,7 @@ env = NetworkGymEnv(client_id, config_json)
 
 This will return an ``Env`` for users to interact with.
 
-## Interacting with the Environment
+### Interacting with the Environment
 
 The classic "agent-environment loop" is implemented using the following code
 
@@ -59,8 +59,8 @@ client_id = 0
 env_name = "nqos_split"
 config_json = load_config_file(env_name)
 
-# Create the environment
-env = NetworkGymEnv(client_id, config_json) # make a network env using pass client id and configure file arguements.
+# Create a network env using pass client id and configure file arguements.
+env = NetworkGymEnv(client_id, config_json) 
 
 num_steps = 1000
 obs, info = env.reset()
@@ -102,7 +102,7 @@ sequenceDiagram
 ```
 
 
-## Action and observation spaces
+### Action and observation spaces
 
 Every environment specifies the format of valid actions and observations with the ``env.action_space`` and ``env.observation_space`` attributes. This is helpful for both knowing the expected input and output of the environment as all valid actions and observation should be contained with the respective space.
 
@@ -125,7 +125,7 @@ Every environment should have the attributes ``action_space`` and ``observation_
 - ``MultiDiscrete``: consists of a series of ``Discrete`` action spaces with a different number of actions in each element.
 
 
-## Modifying the environment
+### Modifying the environment
 
 Our NetworkGym also supports the [Wrappers](https://gymnasium.farama.org/content/basic_usage/#modifying-the-environment) provided by the Gymnasium. Some exmaples:
 - `TimeLimit`: Issue a truncated signal if a maximum number of timesteps has been exceeded (or the base environment has issued a truncated signal).
@@ -136,6 +136,6 @@ Our NetworkGym also supports the [Wrappers](https://gymnasium.farama.org/content
 - `NormalizeObservation`: This wrapper will normalize observations s.t. each coordinate is centered with unit variance.
 
 ```python
-env = NetworkGymEnv(args.client_id, config_json) # make a network env using pass client id and configure file arguements.
+env = NetworkGymEnv(args.client_id, config_json)
 normal_obs_env = NormalizeObservation(env)
 ```

@@ -12,63 +12,6 @@ MAX_DATA_RATE = 100
 MIN_DELAY_MS = 0
 MAX_DELAY_MS = 500
 
-# TODO: update this fuction to custom agent... Do not put it in the adapter!!!
-def single_link_policy(env, config_json):
-    """Move this Function to Custom Agent. Not in the adapter!!!!
-
-    Args:
-        env (_type_): _description_
-        config_json (_type_): _description_
-    """
-
-    num_steps = 0
-
-    #configure the num_steps based on the json file
-    if (config_json['gmasim_config']['GMA']['measurement_interval_ms'] + config_json['gmasim_config']['GMA']['measurement_guard_interval_ms']
-        == config_json['gmasim_config']['Wi-Fi']['measurement_interval_ms'] + config_json['gmasim_config']['Wi-Fi']['measurement_guard_interval_ms']
-        == config_json['gmasim_config']['LTE']['measurement_interval_ms'] + config_json['gmasim_config']['LTE']['measurement_guard_interval_ms']):
-        num_steps = int(config_json['gmasim_config']['simulation_time_s'] * 1000/config_json['gmasim_config']['GMA']['measurement_interval_ms'])
-    else:
-        print(config_json['gmasim_config']['GMA']['measurement_interval_ms'])
-        print(config_json['gmasim_config']['GMA']['measurement_guard_interval_ms'])
-        print(config_json['gmasim_config']['Wi-Fi']['measurement_interval_ms'])
-        print(config_json['gmasim_config']['Wi-Fi']['measurement_guard_interval_ms'])
-        print(config_json['gmasim_config']['LTE']['measurement_interval_ms'])
-        print(config_json['gmasim_config']['LTE']['measurement_guard_interval_ms'])
-        sys.exit('[Error!] The value of GMA, Wi-Fi, and LTE measurement_interval_ms + measurement_guard_interval_ms should be the same!')
-
-
-    done = True
-    for step in range(num_steps):
-        # If the epsiode is up, then start another one
-        if done:
-            obs = env.reset()
-
-        # take random action, but you can also do something more intelligent
-        # action = my_intelligent_agent_fn(obs) 
-
-        #action = env.action_space.sample()
-
-        link_type = config_json['rl_agent_config']['agent']
-        user_number = config_json['gmasim_config']['num_users']
-        policy = []
-
-        if link_type == "Wi-Fi":
-            wifi_ratio = 32
-            lte_ratio = 0
-
-        elif link_type == "LTE":
-            wifi_ratio = 0
-            lte_ratio = 32
-
-        for user_id in range(user_number):
-
-            policy.append({"cid":"Wi-Fi","user":int(user_id),"value":int(wifi_ratio)})#config wifi ratio for user: user_id
-            policy.append({"cid":"LTE","user":int(user_id),"value":int(lte_ratio)})#config lte ratio for user: user_id
-
-        # apply the action
-        obs, reward, done, info = env.step(policy)
-
 class Adapter(Adapter):
     """Nqos split env adapter
 
@@ -133,8 +76,6 @@ class Adapter(Adapter):
         df_rate = df_list[3]
         df_split_ratio = df_list[6]
         df_ap_id = df_list[7]
-
-        wifi_util, lte_util_0 = self.process_util(df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id)
 
         dict_wifi_split_ratio = self.df_split_ratio_to_dict(df_split_ratio, "Wi-Fi")
 
@@ -243,178 +184,6 @@ class Adapter(Adapter):
 
         return policy
 
-    def process_util(self, df_rate, df_load, df_phy_wifi_max_rate, df_phy_lte_max_rate, df_ap_id):
-        """Calculate the utilization
-
-        Args:
-            df_rate (pandas.dataframe): data rate per user
-            df_load (pandas.dataframe): input traffic load per user
-            df_phy_wifi_max_rate (pandas.dataframe): Wi-Fi max rate per user
-            df_phy_lte_max_rate (pandas.dataframe): LTE max rate per user
-            df_ap_id (pandas.dataframe): AP ID per user
-
-        Returns:
-            pandas.dataframe: utilization for Wi-Fi
-            pandas.dataframe: utilization for LTE
-        """
-
-        wifi_list, lte_list = self.sta_count(df_ap_id)
-
-        est_util_list = []
-
-        df_wifi_rate = df_rate[df_rate['cid'] == 'Wi-Fi'].reset_index(drop=True) #keep the Wi-Fi rate.
-        df_lte_rate = df_rate[df_rate['cid'] == 'LTE'].reset_index(drop=True) #keep the LTE rate.
-
-        #Handle when there is traffic over LTE link        
-        if int(self.config_json['gmasim_config']['num_users']) != len(lte_list):
-            lte_list = list(range(0, int(self.config_json['gmasim_config']['num_users'])))
-
-            missing_users = list(set(lte_list) - set(df_lte_rate['user']))
-            if len(missing_users) > 0:
-                missing_rows = pd.DataFrame({'user': missing_users, 'value': 0.1})
-                df_lte_rate = pd.concat([df_lte_rate, missing_rows], ignore_index=True)
-                # print("new rate lte",df_lte_rate)
-
-        df_wifi_rate['value'] = df_wifi_rate['value'].replace(0, 0.1)
-        df_lte_rate['value'] = df_lte_rate['value'].replace(0, 0.1)
-
-        df_load['value'] = df_load['value'].replace(0, 0.1)
-
-        for wifi_sta in wifi_list:
-            # print(wifi_sta)
-            if df_wifi_rate.empty or len(df_phy_wifi_max_rate)==0:
-                est_util = [0.0, 0]
-            else:
-                est_util = self.estimate_util(wifi_sta, df_phy_wifi_max_rate, df_wifi_rate, df_load)
-            est_util_list.append(est_util)
-
-        if df_lte_rate.empty or len(df_phy_lte_max_rate)==0:
-            # print("The DataFrame df_lte_rate is empty.")
-            est_util_cell0 = [0.0, 0]
-        else:
-            # print("The DataFrame df_lte_rate is not empty.")
-            est_util_cell0 = self.estimate_util(lte_list, df_phy_lte_max_rate, df_lte_rate, df_load)
-
-        dict_wifi_rate = self.df_to_dict(df_wifi_rate, 'wifi-rate')
-        dict_lte_rate = self.df_to_dict(df_lte_rate, 'lte-rate')
-
-        if not self.wandb_log_info:
-            self.wandb_log_info = dict_wifi_rate
-        else:
-            self.wandb_log_info.update(dict_wifi_rate)
-        self.wandb_log_info.update(dict_lte_rate)
-        self.wandb_log_info.update(dict_lte_rate)
-
-        self.wandb_log_info.update({
-                                    "AP0_util_rate": est_util_list[0][0] ,"AP1_util_rate": est_util_list[1][0],
-                                    "AP0_num_user": est_util_list[0][1] ,"AP1_num_user": est_util_list[1][1],
-                                    "BS0_num_user": est_util_cell0[1] ,"BS0_util_rate": est_util_cell0[0]
-                                     })
-
-        return est_util_list, est_util_cell0
-
-    def sta_count(self,df ):
-        """Count the number of stations per AP
-
-        Args:
-            df (dataframe): user list
-
-        Returns:
-            list: Wi-Fi user list
-            list: LTE user list
-        """
-        wifi_df = df.loc[df['cid'] == 'Wi-Fi']
-        wifi_df['value'] = wifi_df['value'].astype(int)
-
-        wifi_df = wifi_df.groupby('value')['user'].agg(self.user_list).reset_index()
-        wifi_df.columns = ['id', 'user_list']
-
-        ap_list = list(range(2))
-
-        unique_values = set(wifi_df['id'])
-
-        if set(unique_values) == set(ap_list):
-            wifi_list = wifi_df["user_list"].tolist()
-        else:
-            wifi_df_copy = wifi_df.copy()
-
-            for ap_value in ap_list:
-                if ap_value not in unique_values:
-                    new_row = pd.DataFrame({'id': [ap_value], 'user_list': [[]]})
-                    wifi_df_copy = pd.concat([wifi_df_copy, new_row], ignore_index=True)
-            wifi_list = wifi_df_copy["user_list"].tolist()
-
-        lte_df = df.loc[df['cid'] == 'LTE']
-        lte_list = lte_df['user'].tolist()
-
-        return wifi_list,lte_list
-
-    def user_list(self, x):
-        """unique user list
-
-        Args:
-            x (list): user list
-
-        Returns:
-            list: unique users in the user list
-        """
-        return list(x.unique())
-
-    def estimate_util(self, user_list, max_rate_df, rate_df, load_df):
-        """
-        Estimates the utilization of a Wi-Fi network based on traffic arrival and throughputs.
-
-        Args:
-            user_list (list): A list of users connected to the access point.
-            max_rate_df (pd.DataFrame): A dataframe containing the maximum rate of each user in the network.
-            rate_df (pd.DataFrame): A dataframe containing the delivery rate for each user in the network.
-            load_df (pd.DataFrame): A dataframe containing the traffic arrival rate for each user in the network.
-
-        Returns:
-            tuple: A tuple containing the estimated utilization based on traffic arrival rate and delivery rate, 
-                and the number of users per access point.
-        """
-
-        # Input validation
-        required_cols = ["user", "value"]
-        assert all(col in max_rate_df.columns for col in required_cols), "max_rate_df is missing required columns"
-        assert all(col in rate_df.columns for col in required_cols), "rate_df is missing required columns"
-        assert all(col in load_df.columns for col in required_cols), "load_df is missing required columns"
-        assert isinstance(user_list, list), "user_list must be a list"
-        # print(user_list)
-        # print(max_rate_df)
-        # print(rate_df)
-
-        # Subset dataframes for user list
-        #selected_users = rate_df['user'].iloc[user_list].tolist()
-
-        max_rate_subset = max_rate_df[max_rate_df["user"].isin(user_list)]
-
-        rate_subset = rate_df[rate_df["user"].isin(user_list)]
-        # load_subset = load_df[load_df["user"].isin(user_list)]
-
-
-        # Calculate delivery rate and traffic arrival rate
-        delivery_rate = rate_subset["value"].sum()
-        # traffic_arrival = load_subset["value"].sum()
-        # print("max_rate_subset", max_rate_subset["value"])
-        # print("rate_subset",rate_subset["value"])
-
-        # Calculate maximum capacity
-        num_users = max(len(user_list), 0.01)
-        max_capacity = max_rate_subset["value"].sum() / num_users 
-        weighted_sum = np.sum(max_rate_subset["value"].values * rate_subset["value"].values)
-        weighted_max_capacity = weighted_sum / delivery_rate
-
-    
-        # Calculate estimated utilization
-        # est_util_load = traffic_arrival / max_capacity
-
-        est_util_rate = delivery_rate / weighted_max_capacity
-        # print("est_util_rate:", est_util_rate)
-
-        return est_util_rate, num_users
-
     def df_to_dict(self, df, description):
         """Dataframe to dict covertor
 
@@ -469,6 +238,7 @@ class Adapter(Adapter):
         # Set the index to the 'user' column
         df_cp = df_cp.set_index('user')
         # Convert the DataFrame to a dictionary
+        df_cp['value'] = df_cp['value']/self.action_max_value
         data = df_cp['value'].to_dict()
         return data
 
@@ -506,8 +276,9 @@ class Adapter(Adapter):
         df_rate = df_list[3]
         df_qos_rate = df_list[4]
         df_owd = df_list[5]
-        
+
         #Convert dataframe of Txrate state to python dict
+        df_rate = df_rate[df_rate['cid'] == 'All'].reset_index(drop=True) #keep the flow rate.
         dict_rate = self.df_to_dict(df_rate, 'rate')
         dict_rate["sum_rate"] = df_rate[:]["value"].sum()
 
