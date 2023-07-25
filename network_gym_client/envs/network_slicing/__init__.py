@@ -1,1 +1,0 @@
-from network_gym_client.envs.network_slicing.adapter import Adapter

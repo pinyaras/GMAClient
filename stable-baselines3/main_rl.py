@@ -4,6 +4,12 @@ import pathlib
 import json
 import sys
 import time
+
+import sys
+sys.path.append('../')
+sys.path.append('../../')
+
+from network_gym_client import load_config_file
 from network_gym_client import Env as NetworkGymEnv
 from stable_baselines3.common.env_checker import check_env
 
@@ -73,17 +79,7 @@ def main():
     args = arg_parser()
 
     #load config files
-    FILE_PATH = pathlib.Path(__file__).parent
-    #common_config.json is shared by all environments
-    f = open(FILE_PATH / 'network_gym_client/common_config.json')
-    common_config_json = json.load(f)
-    
-    #load the environment dependent config file
-    file_name = 'network_gym_client/envs/' +args.env + '/config.json'
-    f = open(FILE_PATH / file_name)
-
-    use_case_config_json = json.load(f)
-    config_json = {**common_config_json, **use_case_config_json}
+    config_json = load_config_file(args.env)
     config_json['gmasim_config']['env'] = args.env
 
     if args.lte_rb !=-1:

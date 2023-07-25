@@ -1,10 +1,5 @@
 /wandb
 /runs
 /models
-/__pycache__
-/network_venv
-/sphinx_venv
 *.pyc
-network_gym_accounts.csv
-*northbound_interface.py
-/docs/_build
+/stable-baselines3-venv
