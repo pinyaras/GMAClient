@@ -6,7 +6,7 @@ Within this repository, you will find the State-of-the-Art (SOTA) Reinforcement 
 ## ⌛ Installation:
 - Cloene the NetworkGymClient:
 ```
-https://github.com/IntelLabs/gma/tree/network-gym
+git clone --branch network-gym https://github.com/IntelLabs/gma.git
 ```
 - Step into the NetworkGym folder and Clone this repo:
 ```
