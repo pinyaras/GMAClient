@@ -21,8 +21,8 @@ from gymnasium.wrappers import NormalizeObservation
 
 def train(agent, config_json):
 
-    steps_per_episode = int(config_json['gmasim_config']['steps_per_episode'])
-    episodes_per_session = int(config_json['gmasim_config']['episodes_per_session'])
+    steps_per_episode = int(config_json['env_config']['steps_per_episode'])
+    episodes_per_session = int(config_json['env_config']['episodes_per_session'])
     num_steps = steps_per_episode*episodes_per_session
     
     model = agent.learn(total_timesteps=num_steps)
@@ -31,8 +31,8 @@ def train(agent, config_json):
     #TODD Terminate the RL agent when the simulation ends.
 def system_default_policy(env, config_json):
 
-    steps_per_episode = int(config_json['gmasim_config']['steps_per_episode'])
-    episodes_per_session = int(config_json['gmasim_config']['episodes_per_session'])
+    steps_per_episode = int(config_json['env_config']['steps_per_episode'])
+    episodes_per_session = int(config_json['env_config']['episodes_per_session'])
     num_steps = steps_per_episode*episodes_per_session
 
     truncated = True # episode end
@@ -80,18 +80,18 @@ def main():
 
     #load config files
     config_json = load_config_file(args.env)
-    config_json['gmasim_config']['env'] = args.env
+    config_json['env_config']['env'] = args.env
 
     if args.lte_rb !=-1:
-        config_json['gmasim_config']['LTE']['resource_block_num'] = args.lte_rb
+        config_json['env_config']['LTE']['resource_block_num'] = args.lte_rb
 
     if config_json['rl_agent_config']['agent'] == "" or config_json['rl_agent_config']['agent'] == "system_default":
         # rl agent disabled, use the default policy from the system
         config_json['rl_agent_config']['agent']  = 'system_default'
-        config_json['gmasim_config']['GMA']['respond_action_after_measurement'] = False
+        config_json['env_config']['GMA']['respond_action_after_measurement'] = False
     else:
         #ml algorithm
-        if not config_json['gmasim_config']['GMA']['respond_action_after_measurement']:
+        if not config_json['env_config']['GMA']['respond_action_after_measurement']:
             sys.exit('[Error!] RL agent must set "respond_action_after_measurement" to true !')
     
     rl_alg = config_json['rl_agent_config']['agent'] 
