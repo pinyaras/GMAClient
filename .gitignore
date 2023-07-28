@@ -1,5 +1,6 @@
-/wandb
+stable-baselines3/wandb
 /runs
 /models
 *.pyc
 /stable-baselines3-venv
+
