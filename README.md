@@ -20,6 +20,8 @@ The file structure is organized as follows:
 ┗ 📂 NetworkAgent
   ┗ 📂 stable-baselines3
     ┗ 📜 main_rl.py
+  ┗ 📂 cleanRL
+    ┗ 📜 custom.py
 ```
 
 - (Optional) Create a new virtual python environment.
