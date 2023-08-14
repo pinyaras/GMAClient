@@ -71,7 +71,7 @@ Host mlwins
 - Config the environment using the [json files](https://github.com/IntelLabs/gma/tree/network-gym#%EF%B8%8F-configurable-file-format) provided by NetworkGymClient.
 - Start the agent using the following command, and visualize the output in WanDB website.
 ```
-NetworkGym/NetworkAgent
+cd NetworkGym/NetworkAgent
 python3 stable-baselines3/main_rl.py --env=[ENV]
 ```
 - where [ENV] has 3 options: `nqso_split`, `qos_steer` and `network_slicing`. If the python program stops after sending out the start request as shown in the following, check if the port fowarding is broken.
