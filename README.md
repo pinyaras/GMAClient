@@ -1,12 +1,12 @@
 # Network Agent for NetworkGym
 
 
-Within this repository, you will find the State-of-the-Art (SOTA) Reinforcement Learning (RL) algorithms sourced from [stable-baselines3](https://stable-baselines3.readthedocs.io/en/master/). These algorithms include popular ones such as PPO (Proximal Policy Optimization), DDPG (Deep Deterministic Policy Gradient), SAC (Soft Actor-Critic), TD3 (Twin Delayed Deep Deterministic Policy Gradient), and A2C (Advantage Actor-Critic). Moreover, these algorithms have been integrated to seamlessly interact with the [NetworkGym](https://github.com/IntelLabs/gma/tree/network-gym) Environment.
+Within this repository, you will find the State-of-the-Art (SOTA) Reinforcement Learning (RL) algorithms sourced from [stable-baselines3](https://stable-baselines3.readthedocs.io/en/master/). These algorithms include popular ones such as PPO (Proximal Policy Optimization), DDPG (Deep Deterministic Policy Gradient), SAC (Soft Actor-Critic), TD3 (Twin Delayed Deep Deterministic Policy Gradient), and A2C (Advantage Actor-Critic). Moreover, these algorithms have been integrated to seamlessly interact with the [NetworkGym][((https://github.com/IntelLabs/networkgym)) Environment.
 
 ## ⌛ Installation:
 - Cloene the NetworkGymClient:
 ```
-git clone --branch network-gym https://github.com/IntelLabs/gma.git
+git clone https://github.com/IntelLabs/networkgym.git
 ```
 - Step into the NetworkGym folder and Clone this repo:
 ```
@@ -68,7 +68,7 @@ Host mlwins
 
 ## 🚀 Start Agent:
 
-- Config the environment using the [json files](https://github.com/IntelLabs/gma/tree/network-gym#%EF%B8%8F-configurable-file-format) provided by NetworkGymClient.
+- Config the environment using the [json files] (https://github.com/IntelLabs/networkgym#%EF%B8%8F-configurable-file-format) provided by NetworkGymClient.
 - Start the agent using the following command, and visualize the output in WanDB website.
 ```
 cd NetworkGym/NetworkAgent
