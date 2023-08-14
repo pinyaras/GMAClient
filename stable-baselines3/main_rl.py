@@ -6,6 +6,7 @@ import sys
 import time
 
 import sys
+sys.path.append('.')
 sys.path.append('../')
 sys.path.append('../../')
 
@@ -26,7 +27,7 @@ def train(agent, config_json):
     num_steps = steps_per_episode*episodes_per_session
     
     model = agent.learn(total_timesteps=num_steps)
-    model.save(config_json['rl_agent_config']['agent'] )
+    model.save(config_json['rl_config']['agent'] )
 
     #TODD Terminate the RL agent when the simulation ends.
 def system_default_policy(env, config_json):
@@ -85,16 +86,13 @@ def main():
     if args.lte_rb !=-1:
         config_json['env_config']['LTE']['resource_block_num'] = args.lte_rb
 
-    if config_json['rl_agent_config']['agent'] == "" or config_json['rl_agent_config']['agent'] == "system_default":
-        # rl agent disabled, use the default policy from the system
-        config_json['rl_agent_config']['agent']  = 'system_default'
-        config_json['env_config']['GMA']['respond_action_after_measurement'] = False
-    else:
-        #ml algorithm
-        if not config_json['env_config']['GMA']['respond_action_after_measurement']:
-            sys.exit('[Error!] RL agent must set "respond_action_after_measurement" to true !')
+    if config_json['rl_config']['agent'] == "":
+        config_json['rl_config']['agent']  = 'system_default'
+
+    if not config_json['env_config']['respond_action_after_measurement']:
+        sys.exit('[Error!] RL agent must set "respond_action_after_measurement" to true !')
     
-    rl_alg = config_json['rl_agent_config']['agent'] 
+    rl_alg = config_json['rl_config']['agent'] 
 
     config = {
         "policy_type": "MlpPolicy",
@@ -126,20 +124,19 @@ def main():
 
     if rl_alg != "system_default":
 
-        train_flag = config_json['rl_agent_config']['train']
-        #link_type = config_json['rl_agent_config']['link_type']
+        train_flag = True
 
         # Load the model if eval is True
         if not train_flag:
             # Testing/Evaluation
             path = "models/trained_models/" + rl_alg
             agent = agent_class.load(path)
-            # n_episodes = config_json['rl_agent_config']['timesteps'] / 100
+            # n_episodes = config_json['rl_config']['timesteps'] / 100
 
             evaluate(agent, normal_obs_env, 5)
         else:
             # Train the agent
-            agent = agent_class(config_json['rl_agent_config']['policy'], normal_obs_env, verbose=1)
+            agent = agent_class('MlpPolicy', normal_obs_env, verbose=1)
             train(agent, config_json)
     else:
         #use the system_default algorithm...
