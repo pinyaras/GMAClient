@@ -156,7 +156,7 @@ def main():
         
 def arg_parser():
     parser = argparse.ArgumentParser(description='Network Gym Client')
-    parser.add_argument('--env', type=str, required=True, choices=['nqos_split', 'qos_steer', 'network_slicing'],
+    parser.add_argument('--env', type=str, required=True, choices=['nqos_split', 'qos_steer', 'network_slicing', 'rmcat'],
                         help='Select a environment to start Network Gym Client (nqos_split, qos_steer, network_slicing)')
     parser.add_argument('--agent', type=str, required=False, default='system_default', choices=['PPO', 'DDPG', 'SAC', 'TD3', 'A2C', 'system_default', 'random'],
                         help='Select agent from stable-baselines3')

@@ -19,7 +19,7 @@ The file structure is organized as follows:
 ┣ 📂 network_gym_client
 ┗ 📂 NetworkAgent
   ┗ 📂 stable-baselines3
-    ┗ 📜 main_rl.py
+    ┗ 📜 demo_rl.py
   ┗ 📂 cleanRL
     ┗ 📜 custom.py
 ```
@@ -72,9 +72,9 @@ Host mlwins
 - Start the agent using the following command, and visualize the output in WanDB website.
 ```
 cd NetworkGym/NetworkAgent
-python3 stable-baselines3/main_rl.py --env=[ENV]
+python3 stable-baselines3/demo_rl.py --env=[ENV]
 ```
-- where [ENV] has 3 options: `nqso_split`, `qos_steer` and `network_slicing`. If the python program stops after sending out the start request as shown in the following, check if the port fowarding is broken.
+- where [ENV] has 3 options: `nqso_split`, `qos_steer`, `network_slicing` and `rmcat`. If the python program stops after sending out the start request as shown in the following, check if the port fowarding is broken.
 ```
 [qos_steer] environment selected.
 [30] Number of users selected.
