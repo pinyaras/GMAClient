@@ -3,4 +3,4 @@ stable-baselines3/wandb
 /models
 *.pyc
 /stable-baselines3-venv
-
+/wandb

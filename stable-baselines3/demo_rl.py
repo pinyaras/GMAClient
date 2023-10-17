@@ -29,7 +29,6 @@ def train(agent, config_json):
     model = agent.learn(total_timesteps=num_steps)
     model.save(config_json['rl_config']['agent'] )
 
-    #TODD Terminate the RL agent when the simulation ends.
 def system_default_policy(env, config_json):
 
     steps_per_episode = int(config_json['env_config']['steps_per_episode'])
@@ -38,26 +37,46 @@ def system_default_policy(env, config_json):
 
     truncated = True # episode end
     terminated = False # episode end and simulation end
-    for step in range(num_steps+10):
+    obs, info = env.reset()
+    for step in range(num_steps):
 
-        # if simulation end, exit
-        if terminated:
-            print("simulation end")
-            break
-
-        # If the epsiode is up, then start another one
-        if truncated:
-            print("new episode")
-            obs = env.reset()
-
-
-        
         action = np.array([])#no action from the rl agent
 
         # apply the action
         obs, reward, terminated, truncated, info = env.step(action)
         #print(obs)
 
+        # If the environment is end, exit
+        if terminated:
+            break
+
+        # If the epsiode is up (environment still running), then start another one
+        if truncated:
+            obs, info = env.reset()
+
+def random_policy(env, config_json):
+
+    steps_per_episode = int(config_json['env_config']['steps_per_episode'])
+    episodes_per_session = int(config_json['env_config']['episodes_per_session'])
+    num_steps = steps_per_episode*episodes_per_session
+
+    truncated = True # episode end
+    terminated = False # episode end and simulation end
+    obs, info = env.reset()
+    for step in range(num_steps):
+
+        action = env.action_space.sample()  # agent policy that uses the observation and info
+        # apply the action
+        obs, reward, terminated, truncated, info = env.step(action)
+        #print(obs)
+
+        # If the environment is end, exit
+        if terminated:
+            break
+
+        # If the epsiode is up (environment still running), then start another one
+        if truncated:
+            obs, info = env.reset()
 
 
 def evaluate(model, env, n_episodes):
@@ -82,15 +101,7 @@ def main():
     #load config files
     config_json = load_config_file(args.env)
     config_json['env_config']['env'] = args.env
-
-    if args.lte_rb !=-1:
-        config_json['env_config']['LTE']['resource_block_num'] = args.lte_rb
-
-    if config_json['rl_config']['agent'] == "":
-        config_json['rl_config']['agent']  = 'system_default'
-
-    if not config_json['env_config']['respond_action_after_measurement']:
-        sys.exit('[Error!] RL agent must set "respond_action_after_measurement" to true !')
+    config_json['rl_config']['agent']  = args.agent
     
     rl_alg = config_json['rl_config']['agent'] 
 
@@ -107,6 +118,7 @@ def main():
         'TD3': TD3,
         'A2C': A2C,
         'system_default': system_default_policy,
+        'random': random_policy,
     }
 
     # Choose the agent
@@ -115,14 +127,14 @@ def main():
         raise ValueError(f"Invalid RL algorithm name: {rl_alg}")
     client_id = args.client_id
     # Create the environment
-    print("[" + args.env + "] environment selected.")
+    print("[" + args.env + "] environment with [" + args.agent + "] agent.")
     env = NetworkGymEnv(client_id, config_json) # make a network env using pass client id, adatper and configure file arguements.
     normal_obs_env = NormalizeObservation(env)
     # It will check your custom environment and output additional warnings if needed
     # only use this function for debug, 
     # check_env(env)
 
-    if rl_alg != "system_default":
+    if rl_alg != "system_default" and rl_alg != "random":
 
         train_flag = True
 
@@ -146,10 +158,10 @@ def arg_parser():
     parser = argparse.ArgumentParser(description='Network Gym Client')
     parser.add_argument('--env', type=str, required=True, choices=['nqos_split', 'qos_steer', 'network_slicing'],
                         help='Select a environment to start Network Gym Client (nqos_split, qos_steer, network_slicing)')
+    parser.add_argument('--agent', type=str, required=False, default='system_default', choices=['PPO', 'DDPG', 'SAC', 'TD3', 'A2C', 'system_default', 'random'],
+                        help='Select agent from stable-baselines3')
     parser.add_argument('--client_id', type=int, required=False, default=0,
                         help='Select client id to start simulation')
-    parser.add_argument('--lte_rb', type=int, required=False, default=-1,
-                        help='Select number of LTE Resource Blocks')
 
     args = parser.parse_args()
     return args
